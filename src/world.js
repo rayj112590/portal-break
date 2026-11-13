@@ -52,6 +52,7 @@ export class World {
     this.group = new THREE.Group();
     scene.add(this.group);
     this.grid = level.map.map(row => row.split(""));
+    this.level = level;
     this.rows = this.grid.length;
     this.cols = this.grid[0].length;
     this.width = this.cols * TILE;
@@ -78,6 +79,9 @@ export class World {
     this.buildExit();
     this.buildGates();
     this.buildVents();
+    this.buildPods();
+    this.buildVault();
+    this.buildCard();
     this.computeLockTiers();
   }
 
@@ -100,6 +104,8 @@ export class World {
       case "b": return mode === "walk" && phase === CITY;
       case "v": return mode === "walk" && phase === BREACH;
       case "1": case "2": case "3": return Number(ch) > this.locksDone;
+      case "o": case "O": return mode !== "fly";   // hypersleep pods
+      case "g": return true;                         // security glass: sealed in both worlds
       default: return false;
     }
   }
@@ -756,6 +762,7 @@ export class World {
     }
     this.locksDone = 0;
     for (const gt of this.gates || []) { gt.open = false; gt.fade = 1; gt.group.visible = true; }
+    if (this.card) { this.card.taken = false; this.card.group.visible = true; }
     if (this.exit) {
       this.exit.open = false;
       this.exitRingMat.color.setRGB(1.5, 0.2, 0.25);
@@ -907,6 +914,127 @@ export class World {
     this.ventBursts = bursts;
   }
 
+  // ---------- hypersleep pods (District 05) ----------
+  // "o" = a sleeper pod (scenery), "O" = a crew pod, numbered from level.pods in reading order.
+  buildPods() {
+    const deco = [], crew = [];
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) {
+      const ch = this.grid[r][c];
+      if (ch === "o") deco.push({ r, c, ...this.center(r, c) });
+      else if (ch === "O") crew.push({ r, c, ...this.center(r, c) });
+    }
+    this.pods = [];
+    if (deco.length) {
+      const n = deco.length;
+      const baseGeo = new THREE.BoxGeometry(1.5, 0.45, 1.85); baseGeo.translate(0, 0.225, 0);
+      const shellGeo = podShellGeo(0.52, 0.9);
+      const lightGeo = new THREE.BoxGeometry(0.5, 0.05, 0.06); lightGeo.translate(0, 0.47, -0.93);
+      const base = new THREE.InstancedMesh(baseGeo, new THREE.MeshStandardMaterial({ color: 0x1a2030, metalness: 0.75, roughness: 0.35 }), n);
+      const shell = new THREE.InstancedMesh(shellGeo, podGlassMat(0x5f8fbf), n);
+      const light = new THREE.InstancedMesh(lightGeo, new THREE.MeshBasicMaterial(), n);
+      deco.forEach((p, i) => {
+        _m.compose(_p.set(p.x, 0, p.z), _q.identity(), _s.set(1, 1, 1));
+        base.setMatrixAt(i, _m); shell.setMatrixAt(i, _m); light.setMatrixAt(i, _m);
+        // most sleepers are long dead: a few faint green lights, the rest dark red
+        light.setColorAt(i, (p.c * 7 + p.r * 3) % 5 === 0 ? _c.setRGB(0.3, 2, 0.8) : _c.setRGB(0.9, 0.08, 0.1));
+      });
+      base.castShadow = base.receiveShadow = true;
+      this.group.add(base, shell, light);
+    }
+    const order = this.level.pods || [];
+    crew.forEach((p, i) => this.pods.push(this.makeCrewPod(p, order[i] || "??")));
+  }
+
+  makeCrewPod(p, label) {
+    const g = new THREE.Group();
+    g.position.set(p.x, 0, p.z);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 2.1), new THREE.MeshStandardMaterial({ color: 0x232a3c, metalness: 0.8, roughness: 0.3 }));
+    base.position.y = 0.25; base.castShadow = base.receiveShadow = true;
+    const sleeper = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 1.0, 4, 10), new THREE.MeshStandardMaterial({ color: 0x0c1018, emissive: 0x112233, roughness: 0.6 }));
+    sleeper.rotation.x = Math.PI / 2; sleeper.position.y = 0.72;
+    const lid = new THREE.Group();                    // hinged at the head end (north, -z)
+    lid.position.set(0, 0.5, -1.0);
+    const shell = new THREE.Mesh(podShellGeo(0.62, 1.05), podGlassMat(0x86b8e0));
+    shell.position.set(0, -0.5, 1.0);
+    lid.add(shell);
+    const stripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.5, 0.2, 0.2) });
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.06, 0.08), stripMat);
+    strip.position.set(0, 0.52, 1.06);
+    const label3 = new THREE.Sprite(new THREE.SpriteMaterial({ map: podLabelTexture(label), transparent: true, depthWrite: false }));
+    label3.scale.set(2.4, 1.2, 1); label3.position.set(0, 2.6, 0);
+    const light = new THREE.PointLight(0xff3040, 5, 6, 1.6);
+    light.position.set(0, 1.6, 0.4);
+    // frosted bed inside, lit once the pod is open and empty
+    const bedMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.12, 0.38, 0.5), transparent: true, opacity: 0, depthWrite: false });
+    const bed = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 1.75), bedMat);
+    bed.rotation.x = -Math.PI / 2; bed.position.y = 0.52;
+    g.add(base, sleeper, lid, strip, label3, light, bed);
+    this.group.add(g);
+    return { ...p, label, group: g, lid, sleeper, stripMat, light, label3, bedMat, state: "locked", open: 0 };
+  }
+
+  // locked (red) / ready = you carry its card (amber, pulsing) / awake = empty, lid up (green)
+  setPodState(pod, state) { pod.state = state; }
+
+  updatePods(dt) {
+    for (const p of this.pods || []) {
+      const target = p.state === "awake" ? 1 : 0;
+      p.open += (target - p.open) * Math.min(1, dt * 2.5);
+      p.lid.rotation.x = -p.open * 1.15;
+      p.lid.position.y = 0.5 + p.open * 0.25;
+      p.sleeper.visible = p.open < 0.6;
+      p.bedMat.opacity = Math.max(0, p.open - 0.3) * 0.8;
+      const pulse = 0.6 + Math.sin(this.time * 6) * 0.4;
+      if (p.state === "awake") { p.stripMat.color.setRGB(0.3, 2.2, 0.9); p.light.color.setRGB(0.4, 1, 0.6); p.light.intensity = 6; }
+      else if (p.state === "ready") { p.stripMat.color.setRGB(2.4 * pulse, 1.3 * pulse, 0.2); p.light.color.setRGB(1, 0.6, 0.15); p.light.intensity = 4 + pulse * 6; }
+      else { p.stripMat.color.setRGB(1.3, 0.15, 0.2); p.light.color.setRGB(1, 0.2, 0.25); p.light.intensity = 3.5; }
+      p.label3.position.y = 2.6 + Math.sin(this.time * 2 + p.c) * 0.08;
+    }
+    if (this.card?.group.visible) {
+      this.card.mesh.rotation.y += dt * 2.2;
+      this.card.mesh.position.y = 1.1 + Math.sin(this.time * 3) * 0.12;
+    }
+  }
+
+  // ---------- security glass ("g"): see-through walls around a vault ----------
+  buildVault() {
+    const tiles = [];
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) if (this.grid[r][c] === "g") tiles.push(this.center(r, c));
+    if (!tiles.length) return;
+    const glassGeo = new THREE.BoxGeometry(TILE, 2.4, TILE); glassGeo.translate(0, 1.2, 0);
+    const rimGeo = new THREE.BoxGeometry(TILE, 0.07, TILE); rimGeo.translate(0, 2.42, 0);
+    const glass = new THREE.InstancedMesh(glassGeo, new THREE.MeshStandardMaterial({
+      color: 0x5fb8ff, transparent: true, opacity: 0.16, metalness: 0.3, roughness: 0.05, depthWrite: false,
+    }), tiles.length);
+    // dim cap so the wall reads from above; bright enough to see, not a floodlight under bloom
+    const rim = new THREE.InstancedMesh(rimGeo, new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.32, 0.45), transparent: true, opacity: 0.7, depthWrite: false }), tiles.length);
+    tiles.forEach((p, i) => {
+      _m.compose(_p.set(p.x, 0, p.z), _q.identity(), _s.set(1, 1, 1));
+      glass.setMatrixAt(i, _m); rim.setMatrixAt(i, _m);
+    });
+    glass.renderOrder = 2;
+    this.group.add(glass, rim);
+  }
+
+  // ---------- crew ID card ("k") ----------
+  buildCard() {
+    let spot = null;
+    for (let r = 0; r < this.rows && !spot; r++) for (let c = 0; c < this.cols; c++) if (this.grid[r][c] === "k") { spot = { r, c, ...this.center(r, c) }; break; }
+    if (!spot) return;
+    const g = new THREE.Group();
+    g.position.set(spot.x, 0, spot.z);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.4, 0.04), new THREE.MeshBasicMaterial({ map: cardTexture(), color: new THREE.Color(1.6, 1.4, 1.0) }));
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite(), color: 0xffc04a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    halo.scale.set(2, 2, 1); halo.position.y = 1.1;
+    const light = new THREE.PointLight(0xffb040, 6, 6, 1.6); light.position.y = 1.6;
+    const beam = makeBeam(new THREE.Color(1.0, 0.75, 0.3));
+    g.add(mesh, halo, light, beam);
+    this.group.add(g);
+    this.card = { ...spot, group: g, mesh, crew: this.level.card, taken: false };
+  }
+
+  takeCard() { this.card.taken = true; this.card.group.visible = false; }
+
   // Called after each hacked lock. Returns the gates that just opened.
   openGates(locksDone) {
     this.locksDone = locksDone;
@@ -931,16 +1059,18 @@ export class World {
           const nr = r + dr, nc = c + dc;
           if (!this.inside(nr, nc) || seen[nr * this.cols + nc]) continue;
           const ch = this.grid[nr][nc];
-          if ("#cTR~".includes(ch) || ("123".includes(ch) && Number(ch) > k)) continue;
+          if ("#cTR~goO".includes(ch) || ("123".includes(ch) && Number(ch) > k)) continue;
           seen[nr * this.cols + nc] = 1; q.push([nr, nc]);
         }
       }
+      if (this.card && this.card.tier === undefined && seen[this.card.r * this.cols + this.card.c]) this.card.tier = k;
       for (const t of this.terminals) {
         if (t.tier !== undefined) continue;
         if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dr, dc]) => this.inside(t.r + dr, t.c + dc) && seen[(t.r + dr) * this.cols + t.c + dc])) t.tier = k;
       }
     }
-    for (const t of this.terminals) if (t.tier === undefined) t.tier = 0;
+    // a lock you can't walk up to in either world (glass vault): only a remote hack reaches it
+    for (const t of this.terminals) if (t.tier === undefined) { t.tier = 0; t.sealed = true; }
   }
 
   openExit() {
@@ -1002,6 +1132,7 @@ export class World {
     }
 
     this.updateVents(blend, focusX, focusZ);
+    this.updatePods(dt);
     if (this.ventColMesh) this.ventColMesh.material.map.offset.y = (-t * 2.5) % 1;
     if (this.gateTex) this.gateTex.offset.y = (t * 0.6) % 1;
     for (const gt of this.gates || []) {
@@ -1089,6 +1220,50 @@ function ventStreakTexture() {
   for (let i = 0; i < 9; i++) g.fillRect((i * 7 + 3) % 64, (i * 23) % 64, 2, 18);
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Lying capsule (pod glass), split lengthwise so only the top half shows.
+function podShellGeo(radius, length) {
+  const g = new THREE.CapsuleGeometry(radius, length, 6, 14);
+  g.rotateX(Math.PI / 2);
+  g.scale(1, 0.62, 1);
+  g.translate(0, 0.5, 0);
+  return g;
+}
+function podGlassMat(color) {
+  return new THREE.MeshStandardMaterial({
+    color, emissive: new THREE.Color(color).multiplyScalar(0.04), transparent: true, opacity: 0.26,
+    metalness: 0.2, roughness: 0.15, depthWrite: false,
+  });
+}
+
+// "POD 07" plate for crew pods.
+function podLabelTexture(text) {
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "rgba(6,10,18,0.85)"; g.strokeStyle = "#9fe8ff"; g.lineWidth = 6;
+  g.beginPath(); g.moveTo(20, 8); g.lineTo(248, 8); g.lineTo(236, 120); g.lineTo(8, 120); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = "#dff8ff"; g.font = "bold 30px monospace"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText("POD", 128, 40);
+  g.font = "bold 56px monospace"; g.fillText(text, 128, 86);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Gold crew ID card face.
+function cardTexture() {
+  const c = document.createElement("canvas");
+  c.width = 128; c.height = 80;
+  const g = c.getContext("2d");
+  g.fillStyle = "#c98a1c"; g.fillRect(0, 0, 128, 80);
+  g.fillStyle = "#ffe08a"; g.fillRect(6, 6, 116, 14);
+  g.fillStyle = "#3a2608"; g.fillRect(10, 28, 30, 38);
+  g.fillStyle = "#ffe9b0"; for (let i = 0; i < 4; i++) g.fillRect(48, 30 + i * 9, 66 - i * 10, 4);
+  const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }

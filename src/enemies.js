@@ -184,6 +184,8 @@ export class Enemy {
     this.hitFlash = Math.max(0, this.hitFlash - dt * 6);
     this.bob += dt;
 
+    if (this.hijackT > 0) this.updateHijacked(dt, game);
+    else {
     const dx = player.pos.x - this.pos.x, dz = player.pos.z - this.pos.z;
     const dist = Math.hypot(dx, dz);
     const sees = active && player.alive && dist < this.cfg.range && world.lineOfSight(this.pos.x, this.pos.z, player.pos.x, player.pos.z, this.phase);
@@ -194,6 +196,7 @@ export class Enemy {
     if (this.type === "drone") this.updateDrone(dt, game, engaged, sees, dx, dz, dist);
     else if (this.stationary) this.updateTurret(dt, game, engaged, sees, dx, dz, dist);
     else this.updateWraith(dt, game, engaged, sees, dx, dz, dist);
+    }
 
     // visuals
     const m = this.model;
@@ -203,6 +206,7 @@ export class Enemy {
     for (const fm of m.flashMats) fm.emissive?.setRGB(flash * 3, flash * 3, flash * 3);
     const tel = this.telegraph > 0 ? 1 + Math.sin(this.telegraph * 40) * 0.5 + 1 : 1;
     m.eye.color.copy(m.baseEye).multiplyScalar(tel);
+    if (this.hijackT > 0) m.eye.color.setRGB(0.6, 2.8, 0.4);
     if (this.type === "wraith" && flash === 0) m.shell.material.emissive.setRGB(0.31 + (this.state === "windup" ? 1.5 : 0), 0, 0.06);
 
     // hp bar
@@ -264,6 +268,32 @@ export class Enemy {
         this.cooldown = this.cfg.fireEvery * (0.8 + Math.random() * 0.4);
       } else this.cooldown = 0.3;
       this.telegraph = 0;
+    }
+  }
+
+  // Remote-hacked by Rook: for a while it hunts the nearest enemy in its own world instead of you.
+  updateHijacked(dt, game) {
+    this.hijackT -= dt;
+    this.telegraph = 0;
+    this.burst = 0;
+    if (this.hijackT <= 0) { this.alert = 0; this.cooldown = 1.5; return; }
+    const head = this.model.head;
+    let best = null, bd = this.cfg.range;
+    for (const e of game.enemies) {
+      if (e === this || !e.alive || e.phase !== this.phase || e.hijackT > 0) continue;
+      const d = Math.hypot(e.pos.x - this.pos.x, e.pos.z - this.pos.z);
+      if (d < bd && game.world.lineOfSight(this.pos.x, this.pos.z, e.pos.x, e.pos.z, this.phase)) { bd = d; best = e; }
+    }
+    if (!best) { head.rotation.y += dt * 1.5; return; }
+    let d = Math.atan2(best.pos.x - this.pos.x, best.pos.z - this.pos.z) - head.rotation.y;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    head.rotation.y += d * Math.min(1, dt * 8);
+    this.cooldown -= dt;
+    if (this.cooldown <= 0 && Math.abs(d) < 0.3) {
+      const a = head.rotation.y, fx = Math.sin(a), fz = Math.cos(a);
+      game.allyFire(this, this.pos.x + fx * 0.9, this.pos.z + fz * 0.9, 1.15, fx, fz);
+      this.cooldown = 0.28;
     }
   }
 

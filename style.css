@@ -224,6 +224,21 @@ kbd {
 .sw.glass { background: #2a8fa8; box-shadow: 0 0 8px #55e6ff; }
 .sw.gate { background: #ff8a2a; box-shadow: 0 0 8px #ffb347; }
 .sw.vent { background: #9fe8ff; box-shadow: 0 0 8px #55e6ff; }
+.sw.glass2 { background: #4f9fcf; box-shadow: 0 0 8px #9fe8ff; }
+.sw.card { background: #ffc04a; box-shadow: 0 0 8px #ffc04a; }
+
+/* crew roster (District 05+) */
+#crew-strip { display: flex; gap: 6px; margin-top: 10px; font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+#crew-strip.hidden { display: none; }
+#crew-strip .cm { padding: 3px 8px; background: rgba(0,0,0,0.5); color: var(--muted); border-bottom: 2px solid transparent; transition: all .2s; }
+#crew-strip .cm kbd { font-size: 9px; margin-right: 5px; }
+#crew-strip .cm.on { color: var(--cc); border-bottom-color: var(--cc); text-shadow: 0 0 10px var(--cc); }
+#crew-strip .cm-tab { padding: 3px 4px; opacity: 0.6; }
+#hud[data-char="rook"] .callsign { color: #9dff6a; text-shadow: 0 0 12px #9dff6a; }
+.ph.hack { display: none; color: #9dff6a; }
+#hud[data-char="rook"] .ph.city, #hud[data-char="rook"] .ph.breach { display: none; }
+#hud[data-char="rook"] .ph.hack { display: inline-block; opacity: 1; text-shadow: 0 0 16px currentColor; background: rgba(0,0,0,0.5); border-bottom: 2px solid currentColor; }
+#hud[data-char="rook"] .phase-cd i { background: #9dff6a; box-shadow: 0 0 10px #9dff6a; }
 
 /* ---------- district select ---------- */
 .select-panel { width: min(720px, 94vw); max-height: 92vh; overflow-y: auto; }

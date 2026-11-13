@@ -1,6 +1,7 @@
 // ============================================================
 //  HUD — DOM overlay drawn on top of the WebGL canvas.
 // ============================================================
+import { CREW } from "./crew.js";
 import * as THREE from "three";
 import { CITY, BREACH, PALETTE } from "./config.js";
 
@@ -39,6 +40,18 @@ export class Hud {
   }
 
   setDistrict(name) { this.district.textContent = name; }
+
+  // Crew roster under the bars + callsign + which ability SHIFT fires.
+  setCrew(list, active) {
+    const c = CREW[active];
+    this.root.dataset.char = active;
+    const cs = this.root.querySelector(".callsign");
+    cs.innerHTML = `${c.short} <span>// ${c.tag}</span>`;
+    const el = $("crew-strip");
+    el.classList.toggle("hidden", list.length < 2);
+    el.innerHTML = list.map((id, i) => `<span class="cm${id === active ? " on" : ""}" style="--cc:${CREW[id].css || "var(--accent)"}"><kbd>${i + 1}</kbd>${CREW[id].short.split(" ").pop()}</span>`).join("")
+      + `<span class="cm-tab"><kbd>TAB</kbd></span>`;
+  }
 
   // Tutorial hint above the phase indicator; null hides it.
   hint(html) {
@@ -118,7 +131,7 @@ export class Hud {
     this.energyFill.style.width = `${player.energy}%`;
     this.energyFill.classList.toggle("low", player.energy < 25);
     this.phaseEl.dataset.phase = phase === CITY ? "city" : "breach";
-    this.phaseCd.style.width = `${(1 - game.shiftCd / game.shiftCdMax) * 100}%`;
+    this.phaseCd.style.width = `${(game.abilityFrac ?? 1 - game.shiftCd / game.shiftCdMax) * 100}%`;
     this.dashCd.style.height = `${(player.dashCd / 0.75) * 100}%`;
     this.root.dataset.phase = phase === CITY ? "city" : "breach";
     this.crosshair.dataset.phase = this.root.dataset.phase;
@@ -147,6 +160,15 @@ export class Hud {
   // Auto-aim ring: faint over the current candidate, tight and bright while firing.
   updateLock(game) {
     const el = this.lockEl || (this.lockEl = document.getElementById("lock"));
+    const hp = game.hackPreview;
+    if (hp && !game.input.mouse.left && game.player.alive) {
+      // Rook: show what SHIFT would hack
+      el.classList.remove("hidden", "firing");
+      el.style.setProperty("--lk", "#9dff6a");
+      const p = this.project(hp.x, 1.2, hp.z, game.camera);
+      el.style.transform = `translate(${p.x}px, ${p.y}px)`;
+      return;
+    }
     const t = game.aimTarget;
     if (!t || !t.alive || !game.player.alive) { el.classList.add("hidden"); return; }
     el.classList.remove("hidden");
@@ -167,11 +189,14 @@ export class Hud {
     });
     const { player, world, camera } = game;
     let target = null, kind = "", color = "#55e6ff";
+    const crewTarget = this.crewWaypoint(game);
     if (world.exit?.open) { target = world.exit; kind = "EXIT PORTAL"; color = "#9ff3ff"; }
+    else if (crewTarget) { target = crewTarget; kind = crewTarget.kind; color = "#ffc04a"; }
     else {
       let best = Infinity;
       for (const t of world.terminals) {
         if (t.hacked || (t.tier || 0) > world.locksDone) continue;   // skip locks still behind a gate
+        if (t.sealed && !game.crew.includes("rook")) continue;        // glass vault: needs a remote hack
         const d = Math.hypot(t.x - player.pos.x, t.z - player.pos.z);
         if (d < best) { best = d; target = t; }
       }
@@ -214,6 +239,20 @@ export class Hud {
     }
   }
 
+  // District 05: the ID card, then the pod it opens.
+  crewWaypoint(game) {
+    const { world } = game, cd = world.card;
+    if (!cd) return null;
+    const c = CREW[cd.crew];
+    if (!c || game.crew.includes(c.id)) return null;
+    if (game.carrying === c.id) {
+      const p = world.pods.find(p => p.label === c.pod);
+      return p && { x: p.x, z: p.z, kind: `POD ${c.pod}` };
+    }
+    if (!cd.taken && (cd.tier || 0) <= world.locksDone) return { x: cd.x, z: cd.z, kind: "CREW ID CARD" };
+    return null;
+  }
+
   buildMinimap(world) {
     const s = 4;
     this.mmScale = s;
@@ -235,6 +274,8 @@ export class Hud {
           else if (ch === "A") fill = phase === CITY ? "#55e6ff" : "#1e3640";
           else if (ch === "B") fill = phase === BREACH ? "#ff3355" : "#3a1a22";
           else if (ch === "h") fill = phase === CITY ? "#1f5566" : "#2a1a30";
+          else if (ch === "g") fill = "#4f9fcf";
+          else if (ch === "o" || ch === "O") fill = "#46506a";
           g.fillStyle = fill;
           g.fillRect(col * s, r * s, s, s);
         }

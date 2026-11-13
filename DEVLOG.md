@@ -314,3 +314,28 @@ Layout: a vent band north of the start, a huge central coolant hall with safe is
 First pass looked like a glowing striped carpet with a white-out where the wave fired (60 additive jets + bloom). Toned the grates down and made the jets thinner and dimmer so each one reads on its own.
 
 ![coolant vents](devlog/2026-11-13/31-coolant-vents.jpg)
+
+## Day 3 (cont.) — District 05 // HYPERSLEEP BAY: the crew system
+
+**The big one: a second playable character.** District 05 is a hall full of hypersleep pods. Most sleepers are long gone, but three crew pods have numbers on them: 03, 07 and 11. Each one opens with that crew member's **ID card**, and the cards are scattered across the station.
+
+This district hides the first card in a records office behind security gate 1. Bring it to **Pod 07**, it thaws, and **Iris Rook** wakes up: a netrunner who thought she was dead too.
+
+**How the crew works:**
+- **TAB** (or 1–4) swaps characters mid-stage
+- **SHIFT / right click** fires the *current* character's ability. Jax keeps the phase shift.
+- **Rook's REMOTE HACK** reaches the terminal or turret nearest your cursor, up to 16m away, **through walls**. A green uplink beam locks on and the hack runs on its own.
+  - Hacking a turret **hijacks** it for 12 seconds, and it turns on its old friends.
+  - Rook can't phase, so the levels make you swap: Rook for the sealed stuff, Jax for the Breach.
+- Unlocked crew is saved, and Rook comes with you into every district (replays included).
+
+**The puzzle that needs her:** one lock sits inside a **sealed glass vault**, solid in *both* worlds, so the Breach can't get you in. You can see the terminal through the glass, and only a remote hack reaches it. That lock powers gate 2, which leads to the rift node and the exit, so you need both characters to finish.
+
+The waypoint follows the story: first lock → ID card → Pod 07 → vault → rift node → exit.
+
+First pass of the vault: the glass "rim" was a full glowing cap on every tile, so the whole ring bloomed into a white rectangle. I dimmed it, and now you can see the beam cut through the glass.
+
+Rook uses Jax's body for now, recolored in acid green. She needs her own Blender model.
+
+![remote hack through the vault glass](devlog/2026-11-13/32-remote-hack-vault.jpg)
+![hypersleep bay](devlog/2026-11-13/33-hypersleep-bay.jpg)

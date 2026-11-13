@@ -19,6 +19,7 @@ import { Enemy, separate } from "./enemies.js";
 import { Particles, Weather, Shockwaves, Flashes, Projectiles } from "./fx.js";
 import { Audio } from "./audio.js";
 import { Input } from "./input.js";
+import { CREW, CREW_ORDER, loadCrew, saveCrew, crewByPod } from "./crew.js";
 import { Hud } from "./hud.js";
 import { loadModels } from "./models.js";
 
@@ -143,6 +144,9 @@ function setAutoAim(on) {
 }
 const AIM = { range: 18 }; // lock range in world units
 const VENT_DAMAGE = 12;
+// Iris Rook's remote hack: terminals + turrets within range, straight through walls
+const HACK = { range: 16, termTime: 2.0, turretTime: 0.7, hijack: 12, cooldown: 1.0 };
+const HACK_COLOR = new THREE.Color(0.55, 1.0, 0.3);
 
 // ---------- movement style: "facing" (W = toward mouse, default) or "screen" (W = up) ----------
 function initialMoveMode() {
@@ -162,7 +166,7 @@ function pickAimTarget() {
   const cursorAng = Math.atan2(cdx, cdz);
   let best = null, bestScore = Infinity;
   for (const e of game.enemies) {
-    if (!e.alive || e.phase !== game.phase) continue;
+    if (!e.alive || e.phase !== game.phase || e.hijackT > 0) continue;
     const dx = e.pos.x - px, dz = e.pos.z - pz;
     const d = Math.hypot(dx, dz);
     if (d > AIM.range || d < 0.3) continue;
@@ -185,6 +189,13 @@ const game = {
   fx: initialFx(),
   autoAim: initialAutoAim(),
   moveMode: initialMoveMode(),
+  crew: loadCrew(),      // unlocked characters, in roster order
+  char: "jax",           // who you're playing right now
+  carrying: null,        // crew id of the ID card you're holding
+  uplink: null,
+  uplinkCd: 0,
+  swapCd: 0,
+  hackPreview: null,
   aimTarget: null,
   world, player, camera, input, audio, particles,
   enemies: [],
@@ -212,6 +223,13 @@ const game = {
     const cfg = enemy.cfg;
     projectiles.spawn({ x, z, y, dx, dz, speed: cfg.bulletSpeed, damage: cfg.damage, phase: enemy.phase, friendly: false, color: enemy.color });
     if (game.fx) flashes.flash(x, y, z, enemy.color, 2.5, 0.12, 4);
+    if (Math.hypot(x - player.pos.x, z - player.pos.z) < 22) audio.enemyShoot();
+  },
+
+  // a turret Rook hijacked: friendly fire at its old friends
+  allyFire(src, x, z, y, dx, dz) {
+    projectiles.spawn({ x, z, y, dx, dz, speed: 24, damage: 14, phase: src.phase, friendly: true, color: HACK_COLOR });
+    if (game.fx) flashes.flash(x, y, z, HACK_COLOR, 2.5, 0.1, 4);
     if (Math.hypot(x - player.pos.x, z - player.pos.z) < 22) audio.enemyShoot();
   },
 
@@ -284,6 +302,14 @@ function resetLevel() {
   game.hintsShown ||= new Set(); // persists across districts so basics aren't repeated
   game.hint = null;
   hud.hint(null);
+  game.carrying = null;
+  game.uplink = null;
+  game.uplinkCd = 0;
+  game.objText = "";
+  if (!game.crew.includes(game.char)) game.char = "jax";
+  player.tint = CREW[game.char].tint;
+  hud.setCrew(game.crew, game.char);
+  refreshPods(true);
   audio.setBreach(0);
   hud.clearLabels();
   updateObjective();
@@ -346,6 +372,14 @@ const HINTS = [
     text: "<b class='c'>COOLANT VENTS</b> &nbsp;//&nbsp; they blast in waves. Wait for the gap, <kbd>SPACE</kbd> dash through, or <kbd>SHIFT</kbd>: they're dead in the <b class='r'>BREACH</b>." },
   { id: "gate", when: () => world.gates?.some(g => !g.open && Math.hypot(g.x - player.pos.x, g.z - player.pos.z) < 7), dur: 9,
     text: "<b style='color:#ffb347'>SECURITY GATE</b> &nbsp;//&nbsp; blocks BOTH worlds. Crack locks to cut its power: gate <b>1</b> drops after 1 lock, gate <b>2</b> after 2..." },
+  { id: "pods", when: () => world.pods?.some(p => Math.hypot(p.x - player.pos.x, p.z - player.pos.z) < 7), dur: 10,
+    text: "<b style='color:#ffc04a'>CREW PODS</b> &nbsp;//&nbsp; each one opens with that sleeper's ID card. Cards are hidden all over the station." },
+  { id: "sealed", when: () => world.terminals.some(t => t.sealed && !t.hacked && Math.hypot(t.x - player.pos.x, t.z - player.pos.z) < 13), dur: 10,
+    text: () => game.crew.includes("rook")
+      ? "<b style='color:#9dff6a'>SEALED VAULT</b> &nbsp;//&nbsp; no way in, in either world. <kbd>TAB</kbd> to Rook and <kbd>SHIFT</kbd> remote hack it from out here."
+      : "<b style='color:#9dff6a'>SEALED VAULT</b> &nbsp;//&nbsp; no way in, in either world. Somebody asleep in the hypersleep bay might be able to hack it from outside..." },
+  { id: "rook", when: () => game.char === "rook", dur: 13,
+    text: "<b style='color:#9dff6a'>IRIS ROOK</b> &nbsp;//&nbsp; <kbd>SHIFT</kbd> / <kbd>RIGHT CLICK</kbd>: remote hack the terminal or turret nearest your cursor, up to 16m, through walls. <kbd>TAB</kbd> back to Jax to phase." },
   { id: "exit", when: () => world.exit?.open, dur: 6,
     text: "All locks breached &nbsp;//&nbsp; follow the marker to the <b class='c'>EXIT PORTAL</b>" },
 ];
@@ -360,7 +394,7 @@ function updateHints(dt) {
     if (game.hintsShown.has(def.id) || !def.when()) continue;
     game.hintsShown.add(def.id);
     game.hint = { def, t: 0 };
-    hud.hint(def.text);
+    hud.hint(typeof def.text === "function" ? def.text() : def.text);
     break;
   }
 }
@@ -368,8 +402,176 @@ function updateHints(dt) {
 function updateObjective() {
   const total = world.terminals.length;
   const done = world.terminals.filter(t => t.hacked).length;
-  if (done < total) hud.setObjective(`BREACH THE LOCKS  ${done}/${total}`);
-  else hud.setObjective("PORTAL ONLINE // REACH THE EXIT");
+  let text = done < total ? `BREACH THE LOCKS  ${done}/${total}` : "PORTAL ONLINE // REACH THE EXIT";
+  const cd = world.card, c = cd && CREW[cd.crew];
+  if (c && !game.crew.includes(c.id)) {
+    if (game.carrying === c.id) text = `TAKE THE ID CARD TO POD ${c.pod}`;
+    else if (!cd.taken && (cd.tier || 0) <= world.locksDone) text += "  //  FIND THE CREW ID CARD";
+  }
+  if (text !== game.objText) { game.objText = text; hud.setObjective(text); }
+}
+
+// ---------- crew: ID cards, hypersleep pods, swapping ----------
+function refreshPods(instant) {
+  for (const p of world.pods || []) {
+    const c = crewByPod(p.label);
+    const state = c && game.crew.includes(c.id) ? "awake" : c && game.carrying === c.id ? "ready" : "locked";
+    world.setPodState(p, state);
+    if (instant) p.open = state === "awake" ? 1 : 0;
+  }
+}
+
+function swapTo(id, quiet) {
+  if (id === game.char || !game.crew.includes(id) || !player.alive || game.swapCd > 0) return;
+  game.char = id;
+  game.swapCd = 0.35;
+  game.uplink = null;
+  const c = CREW[id];
+  player.tint = c.tint;
+  const col = c.tint || PALETTE[game.phase].accent;
+  shockwaves.spawn(player.pos.x, player.pos.z, col, 5, 0.4);
+  particles.emit({ x: player.pos.x, y: 1, z: player.pos.z, count: 30, speed: 5, up: 3, color: [col.r * 2, col.g * 2, col.b * 2], size: 0.35, life: 0.5, gravity: -2, drag: 3 });
+  if (game.fx) player.spawnAfterimage(col);
+  audio.dash();
+  if (!quiet) hud.toast(`${c.name} // ${c.ability}`, c.css || "#55e6ff");
+  hud.setCrew(game.crew, id);
+}
+
+function updateCrew(dt) {
+  // pick up the ID card
+  const cd = world.card;
+  if (cd && !cd.taken && player.alive && Math.hypot(player.pos.x - cd.x, player.pos.z - cd.z) < 1.4) {
+    world.takeCard();
+    const c = CREW[cd.crew];
+    audio.hackDone();
+    flashes.flash(cd.x, 1.5, cd.z, 0xffc04a, 10 * game.fx, 0.5, 10);
+    shockwaves.spawn(cd.x, cd.z, new THREE.Color(1, 0.75, 0.3), 5, 0.5);
+    if (game.crew.includes(c.id)) { hud.toast(`ID CARD // POD ${c.pod} IS ALREADY OPEN`, "#ffc04a"); game.stats.score += 100; }
+    else { game.carrying = c.id; hud.toast(`CREW ID CARD // POD ${c.pod} // TAKE IT TO THE HYPERSLEEP BAY`, "#ffc04a"); }
+    refreshPods(false);
+  }
+  // crew pods
+  for (const p of world.pods || []) {
+    const c = crewByPod(p.label);
+    const d = Math.hypot(player.pos.x - p.x, player.pos.z - p.z);
+    if (d > 2.9 || !player.alive) { hud.terminalLabel(p, camera, false); p.progress = 0; continue; }
+    if (p.state === "awake") hud.terminalLabel(p, camera, true, `<b style="color:${c.css}">POD ${p.label}</b><br>EMPTY // ${c.name} IS AWAKE`, 0);
+    else if (p.state === "ready") {
+      p.progress = Math.min(1, (p.progress || 0) + dt / 1.4);
+      hackTickT -= dt;
+      if (hackTickT <= 0) { audio.hackTick(); hackTickT = 0.12; }
+      hud.terminalLabel(p, camera, true, `<b style="color:#ffc04a">POD ${p.label}</b><br>THAWING ${Math.floor(p.progress * 100)}%`, p.progress);
+      if (p.progress >= 1) wakePod(p, c);
+    } else {
+      hud.terminalLabel(p, camera, true, `<b class="r">POD ${p.label}</b><br>LOCKED // ID CARD REQUIRED`, 0);
+    }
+  }
+  game.swapCd = Math.max(0, game.swapCd - dt);
+  updateUplink(dt);
+  updateObjective();
+}
+
+function wakePod(p, c) {
+  game.carrying = null;
+  game.crew = CREW_ORDER.filter(id => id === "jax" || id === c.id || game.crew.includes(id));
+  saveCrew(game.crew);
+  world.setPodState(p, "awake");
+  hud.terminalLabel(p, camera, false);
+  game.stats.score += 500;
+  // cold fog bursts out of the pod
+  shockwaves.spawn(p.x, p.z, c.tint, 9, 0.7);
+  flashes.flash(p.x, 2, p.z, c.tint, 16 * game.fx, 0.7, 12);
+  particles.emit({ x: p.x, y: 0.8, z: p.z, count: 90, speed: 6, up: 2, color: [1.6, 2.0, 2.4], size: 0.6, life: 1.1, gravity: 0.5, drag: 2.5 });
+  audio.portalOpen();
+  hud.setCrew(game.crew, game.char);
+  updateObjective();
+  playStory(c.wake || [], () => {
+    hideOverlay();
+    hud.show(true);
+    game.state = "play";
+    game.swapCd = 0;
+    swapTo(c.id);
+  });
+}
+
+// ---------- Rook: remote hack ----------
+function findUplinkTarget() {
+  const px = player.pos.x, pz = player.pos.z, ax = player.aim.x, az = player.aim.z;
+  let best = null, bestD = Infinity;
+  const consider = (obj, kind, x, z) => {
+    if (Math.hypot(x - px, z - pz) > HACK.range) return;
+    const d = Math.hypot(x - ax, z - az);
+    if (d < bestD) { bestD = d; best = { obj, kind, x, z }; }
+  };
+  for (const t of world.terminals) if (!t.hacked && t.phase === game.phase) consider(t, "terminal", t.x, t.z);
+  for (const e of game.enemies) if (e.alive && e.stationary && e.phase === game.phase && !(e.hijackT > 0)) consider(e, "turret", e.pos.x, e.pos.z);
+  return best;
+}
+
+function tryUplink() {
+  if (game.uplinkCd > 0 || !player.alive) return;
+  const t = findUplinkTarget();
+  if (t && game.uplink && t.obj === game.uplink.obj) return;   // already on it
+  if (!t) {
+    audio.denied();
+    const other = world.terminals.some(x => !x.hacked && x.phase !== game.phase && Math.hypot(x.x - player.pos.x, x.z - player.pos.z) < HACK.range);
+    hud.toast(other ? "UPLINK FAILED // THAT LOCK IS IN THE OTHER WORLD" : "UPLINK FAILED // NOTHING HACKABLE WITHIN 16m", "#ff5566");
+    game.uplinkCd = 0.25;
+    return;
+  }
+  game.uplink = { ...t, t: 0, dur: t.kind === "terminal" ? HACK.termTime : HACK.turretTime };
+  audio.hackTick();
+  shockwaves.spawn(t.x, t.z, HACK_COLOR, 3, 0.35);
+}
+
+let uplinkBeam = null;
+function updateUplink(dt) {
+  game.uplinkCd = Math.max(0, game.uplinkCd - dt);
+  if (!uplinkBeam) {
+    const geo = new THREE.CylinderGeometry(0.05, 0.05, 1, 6, 1, true);
+    geo.rotateX(Math.PI / 2);
+    uplinkBeam = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: HACK_COLOR.clone().multiplyScalar(3), transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+    uplinkBeam.frustumCulled = false;
+    scene.add(uplinkBeam);
+  }
+  game.hackPreview = game.char === "rook" && !game.uplink && player.alive ? findUplinkTarget() : null;
+  const u = game.uplink;
+  uplinkBeam.visible = !!u;
+  if (!u) return;
+  const lost = !player.alive || game.char !== "rook"
+    || Math.hypot(u.x - player.pos.x, u.z - player.pos.z) > HACK.range + 3
+    || (u.kind === "terminal" ? u.obj.hacked || u.obj.phase !== game.phase : !u.obj.alive || u.obj.phase !== game.phase);
+  if (lost) {
+    game.uplink = null; uplinkBeam.visible = false; game.uplinkCd = 0.5;
+    if (u.kind === "terminal" && !u.obj.hacked) hud.toast("UPLINK LOST", "#ff5566");
+    return;
+  }
+  u.t += dt;
+  const k = Math.min(1, u.t / u.dur);
+  // beam from Rook's hand to the target, crackling
+  const sx = player.pos.x, sz = player.pos.z, sy = 1.5, ty = u.kind === "terminal" ? 1.3 : 1.2;
+  uplinkBeam.position.set((sx + u.x) / 2, (sy + ty) / 2, (sz + u.z) / 2);
+  uplinkBeam.lookAt(u.x, ty, u.z);
+  const len = Math.hypot(u.x - sx, ty - sy, u.z - sz);
+  const w = 0.7 + Math.random() * 0.8;
+  uplinkBeam.scale.set(w, w, len);
+  const f = Math.random();
+  particles.emit({ x: sx + (u.x - sx) * f, y: sy + (ty - sy) * f, z: sz + (u.z - sz) * f, count: 1, speed: 0.6, up: 0.3, color: [1.2, 2.6, 0.8], size: 0.3, life: 0.25, gravity: 0 });
+  hackTickT -= dt;
+  if (hackTickT <= 0) { audio.hackTick(); hackTickT = 0.08; }
+  if (u.kind === "terminal") {
+    u.obj.progress = Math.max(u.obj.progress, k);
+    hud.terminalLabel(u.obj, camera, true, `<b style="color:#9dff6a">REMOTE HACK</b> ${Math.floor(u.obj.progress * 100)}%`, u.obj.progress);
+    if (u.obj.progress >= 1) { game.uplink = null; game.uplinkCd = HACK.cooldown; completeTerminal(u.obj); }
+  } else if (k >= 1) {
+    u.obj.hijackT = HACK.hijack;
+    u.obj.cooldown = 0.3;
+    game.uplink = null; game.uplinkCd = HACK.cooldown;
+    audio.hackDone();
+    shockwaves.spawn(u.x, u.z, HACK_COLOR, 4, 0.45);
+    hud.toast(`TURRET HIJACKED // ${HACK.hijack}s`, "#9dff6a");
+    game.stats.score += 50;
+  }
 }
 
 // ---------- phase shift ----------
@@ -492,7 +694,7 @@ function updateProjectiles(dt) {
       }
       if (p.friendly) {
         for (const e of game.enemies) {
-          if (!e.alive || e.phase !== p.phase) continue;
+          if (!e.alive || e.phase !== p.phase || e.hijackT > 0) continue;
           if (Math.hypot(e.pos.x - p.x, e.pos.z - p.z) < e.radius + p.radius) {
             const crit = Math.random() < 0.12;
             const dmg = crit ? p.damage * 2 : p.damage;
@@ -644,8 +846,14 @@ function updatePlay(dt) {
   game.aimTarget = game.autoAim && player.alive ? pickAimTarget() : null;
   const t = game.aimTarget;
   player.lock = t && input.mouse.left ? _lock.set(t.pos.x, 1.2, t.pos.z) : null;
-  if (input.shiftPressed()) tryShift();
+  // crew: TAB cycles, 1-4 picks; SHIFT / right click = the current character's ability
+  if (input.pressed("Tab")) swapTo(game.crew[(game.crew.indexOf(game.char) + 1) % game.crew.length]);
+  for (let k = 0; k < 4; k++) if (input.pressed(`Digit${k + 1}`) && game.crew[k]) swapTo(game.crew[k]);
+  if (input.shiftPressed()) { if (game.char === "rook") tryUplink(); else tryShift(); }
   game.shiftCd = Math.max(0, game.shiftCd - dt);
+  game.abilityFrac = game.char === "rook"
+    ? (game.uplink ? Math.min(1, game.uplink.t / game.uplink.dur) : 1 - game.uplinkCd / HACK.cooldown)
+    : 1 - game.shiftCd / game.shiftCdMax;
 
   player.relativeMove = game.moveMode === "facing";
   const { dashed } = player.update(dt, input, world, game.phase);
@@ -719,6 +927,7 @@ function updatePlay(dt) {
   updateProjectiles(dt);
   updatePickups(dt);
   updateTerminals(dt);
+  updateCrew(dt);
 
   if (world.exit?.open && Math.hypot(player.pos.x - world.exit.x, player.pos.z - world.exit.z) < 1.5) winLevel();
 }
@@ -868,6 +1077,7 @@ function screenTitle() {
         <span><kbd>MOUSE</kbd> aim / fire</span>
         <span><kbd>SHIFT</kbd> or <kbd>RMB</kbd> phase shift</span>
         <span><kbd>SPACE</kbd> dash</span>
+        <span><kbd>TAB</kbd> swap crew</span>
         <span><kbd>ESC</kbd> pause</span>
         <span><kbd>M</kbd> mute</span>
         <span><kbd>F9</kbd> record clip</span>
@@ -1136,7 +1346,8 @@ window.__makeThumbs = async () => {
     game.state = "paused";
     game.phase = CITY; game.blend = 0;
     const s = world.spawns.player;
-    const fx = Math.min(world.width - 14, s.x + 9), fz = Math.max(14, s.z - 8);
+    const tf = LEVELS[i].thumbFocus;   // optional [row, col] to frame instead of the spawn
+    const fx = tf ? tf[1] * 2 + 1 : Math.min(world.width - 14, s.x + 9), fz = tf ? tf[0] * 2 + 1 : Math.max(14, s.z - 8);
     camTarget.set(fx, 0, fz);
     player.pos.set(s.x + 2, 0, s.z - 1);
     player.update(0.0001, input, world, CITY);

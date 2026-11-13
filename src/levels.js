@@ -14,6 +14,9 @@
 //   r  rift turret (breach)
 //   h  coolant vent — blasts in waves in the CITY, dormant in the BREACH (District 04+)
 //   1 2 3  security gate — solid in BOTH worlds until that many locks are hacked (District 03+)
+//   o  hypersleep pod (scenery, like a crate)   O  crew pod, numbered by the level's `pods` list
+//   g  security glass — solid in both worlds; a lock behind it needs Rook's remote hack
+//   k  crew ID card (opens the pod of the level's `card` crew member) (District 05+)
 // ============================================================
 
 export const LEVELS = [
@@ -200,6 +203,55 @@ export const LEVELS = [
     storyAfter: [
       { speaker: "DR. LENA VOSS", text: "Coolant's stable. The hypersleep bay is right below us, Calder. I'm reading one heartbeat. Faint, but real." },
       { speaker: "UNKNOWN TRANSMISSION", text: "Personnel record found: crew ID card, last scanned in the hypersleep bay. Pod 07 is waiting for it." },
+    ],
+  },
+  {
+    id: "d05",
+    name: "DISTRICT 05 // HYPERSLEEP BAY",
+    pods: ["03", "07", "11"],
+    thumbFocus: [14, 22],
+    card: "rook",
+    briefing: [
+      "Rows of sleepers, most of them long gone. One heartbeat: Pod 07.",
+      "NEW: find the crew ID card in the records office and bring it to Pod 07. Whoever wakes up joins you. TAB swaps between crew.",
+      "One lock sits in a sealed glass vault. Not even the Breach gets you in there. You'll need a hacker.",
+    ],
+    legendExtra: "<i class='sw card'></i> NEW: crew ID card &nbsp;·&nbsp; <i class='sw glass2'></i> sealed glass vault (remote hack only)",
+    map: [
+      "##############################################",
+      "##############################################",
+      "##L.......L#L.........##..........L#L......L##",
+      "##.ggggggg.#....R..r..##.....X.....#.cc...d.##",
+      "##.g.....g.#..............w........#.cc..k..##",
+      "##.g..T..g.#~~~~~~~~~~~~~~~~~~~bb~~#........##",
+      "##.g.....g.#~~~~~~~~~~~~~~~~~~~bb~~#....t...##",
+      "##.ggggggg.#......w........d.......#........##",
+      "##.........#.......................#........##",
+      "##.........####################22######11#####",
+      "##L........#L....................L#........L##",
+      "##.........#.....O....O....O......#.........##",
+      "##....d....#....................t.#.........##",
+      "##...c.....#......................#.........##",
+      "##.........#.o.o.o.o.....o.o.o.o..#.....w...##",
+      "##..........................................##",
+      "##......................d...................##",
+      "##..w......#.o.o.o.o.....o.o.o.o..#....c....##",
+      "##.........#......................#.........##",
+      "##L........#L..t.................L#........L##",
+      "##.........##########....##########.........##",
+      "##..................L....L..................##",
+      "##..........##...d........c...##............##",
+      "##....T.....##................##............##",
+      "##.c....dc..................w...............##",
+      "##.......c............P............c........##",
+      "##.......c......c.....................d.....##",
+      "##L..........L..................L..........L##",
+      "##############################################",
+      "##############################################",
+    ],
+    storyAfter: [
+      { speaker: "IRIS ROOK", text: "Three pods in that bay had crew IDs on them, Calder. I got one name. Somebody pulled the other two cards and scattered them." },
+      { speaker: "DR. LENA VOSS", text: "Then we find them. Every card you bring back is another pair of hands. Pod 03 is reading something... bright." },
       { speaker: "NARRATOR", text: "To be continued in the next build." },
     ],
   },

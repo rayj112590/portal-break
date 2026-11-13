@@ -212,6 +212,7 @@ export class Player {
     this.alive = true;
     this.hitFlash = 0;
     this.lock = null; // auto-aim target position (Vector3) or null
+    this.tint ??= null; // crew colour (Rook = acid green); null = the phase colour
   }
 
   get radius() { return PLAYER.radius; }
@@ -314,9 +315,10 @@ export class Player {
     m.root.rotation.y = this.facing;
 
     const col = phase === CITY ? PALETTE[CITY].accent : PALETTE[BREACH].accent;
-    m.coreMat.color.copy(col).multiplyScalar(1.7);   // accents, not floodlights: keeps him reading as a person
+    const tc = this.tint || col;
+    m.coreMat.color.copy(tc).multiplyScalar(1.7);   // accents, not floodlights: keeps him reading as a person
     if (this.hitFlash > 0) m.trimMat.color.setRGB(4, 4, 4);
-    else m.trimMat.color.copy(col).multiplyScalar(1.15);
+    else m.trimMat.color.copy(tc).multiplyScalar(1.15);
     ghostMat.color.copy(col);
     m.root.visible = true; // no hit-blink (photosensitivity)
 

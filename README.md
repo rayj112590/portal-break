@@ -10,7 +10,8 @@ An isometric neon twin-stick shooter where **SHIFT phases you between two worlds
 | WASD / arrows | Move: W runs toward the mouse, S backs off, A/D strafe (switch to screen-direction movement in Esc settings) |
 | Mouse | Aim |
 | Left mouse (hold) | Fire |
-| **Shift** or right mouse | Phase shift (City ⇄ Breach) |
+| **Shift** or right mouse | Current character's ability: Jax = phase shift (City ⇄ Breach), Rook = remote hack |
+| Tab / 1–4 | Swap crew (once you've woken someone in District 05) |
 | Space | Dash |
 | Esc | Pause (graphics + mute options) |
 | M | Mute |
@@ -42,6 +43,7 @@ src/enemies.js          drone / turret / wraith AI + models
 src/fx.js               particles, rain/embers, shockwaves, projectiles
 src/audio.js            synth SFX + adaptive music
 src/hud.js              HUD, minimap, floating labels
+src/crew.js             playable crew roster (who's unlocked, abilities, pod numbers)
 src/post.js             final screen shader
 src/models.js           loads the Blender GLBs (falls back to stand-ins)
 assets/models/          exported GLBs: player, drone, turret, wraith
