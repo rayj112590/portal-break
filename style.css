@@ -223,6 +223,7 @@ kbd {
 }
 .sw.glass { background: #2a8fa8; box-shadow: 0 0 8px #55e6ff; }
 .sw.gate { background: #ff8a2a; box-shadow: 0 0 8px #ffb347; }
+.sw.vent { background: #9fe8ff; box-shadow: 0 0 8px #55e6ff; }
 
 /* ---------- district select ---------- */
 .select-panel { width: min(720px, 94vw); max-height: 92vh; overflow-y: auto; }

@@ -18,6 +18,8 @@ const _q = new THREE.Quaternion();
 const _s = new THREE.Vector3();
 const _p = new THREE.Vector3();
 const _c = new THREE.Color();
+const _c2 = new THREE.Color();
+const VENT = { period: 2.6, on: 0.9, warn: 0.6 }; // seconds
 
 // Tall soft light column that marks an objective above the rooftops.
 let beamTex = null;
@@ -75,6 +77,7 @@ export class World {
     this.buildTerminals();
     this.buildExit();
     this.buildGates();
+    this.buildVents();
     this.computeLockTiers();
   }
 
@@ -831,6 +834,79 @@ export class World {
     return { n, tiles, group: g, curtainMat, label, light, x: mid.x, z: mid.z, open: false, fade: 1 };
   }
 
+  // ---------- coolant vents (District 04+) ----------
+  // Floor grates that blast coolant in waves rolling across the map. CITY only: in the
+  // BREACH they're dormant. The grate glows for WARN seconds before each blast.
+  buildVents() {
+    this.vents = [];
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) {
+      if (this.grid[r][c] === "h") this.vents.push({ r, c, ...this.center(r, c), wasOn: false });
+    }
+    if (!this.vents.length) return;
+    const n = this.vents.length;
+    const grateGeo = new THREE.PlaneGeometry(TILE * 0.92, TILE * 0.92);
+    grateGeo.rotateX(-Math.PI / 2);
+    this.grateMesh = new THREE.InstancedMesh(grateGeo, new THREE.MeshBasicMaterial({ map: grateTexture(), transparent: true, depthWrite: false }), n);
+    const colGeo = new THREE.CylinderGeometry(0.28, 0.5, 3.0, 10, 1, true);
+    colGeo.translate(0, 1.5, 0);
+    this.ventColMesh = new THREE.InstancedMesh(colGeo, new THREE.MeshBasicMaterial({
+      map: ventStreakTexture(), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    }), n);
+    this.ventColMesh.frustumCulled = false;
+    this.vents.forEach((v, i) => {
+      _m.compose(_p.set(v.x, 0.03, v.z), _q.identity(), _s.set(1, 1, 1));
+      this.grateMesh.setMatrixAt(i, _m);
+      this.grateMesh.setColorAt(i, _c.setRGB(0.16, 0.22, 0.28));
+      _m.compose(_p.set(v.x, 0, v.z), _q.identity(), _s.set(1, 0.001, 1));
+      this.ventColMesh.setMatrixAt(i, _m);
+      this.ventColMesh.setColorAt(i, _c.setRGB(0, 0, 0));
+    });
+    this.grateMesh.renderOrder = 1;
+    this.group.add(this.grateMesh, this.ventColMesh);
+  }
+
+  // 0..1 timeline position of a vent; blast while s < ON, warning glow in the last WARN seconds.
+  ventCycle(r, c) {
+    const P = VENT.period, off = c * 0.16 + r * 0.05;
+    return (((this.time - off) % P) + P) % P;
+  }
+  ventBlasting(r, c) { return this.ch(r, c) === "h" && this.ventCycle(r, c) < VENT.on; }
+
+  // Is there a live blast under (x, z)? Only meaningful in the CITY.
+  ventHitAt(x, z) {
+    const [r, c] = this.toTile(x, z);
+    return this.ventBlasting(r, c);
+  }
+
+  updateVents(blend, focusX, focusZ) {
+    if (!this.vents?.length) return;
+    const city = 1 - blend;
+    let bursts = 0;
+    this.vents.forEach((v, i) => {
+      const s = this.ventCycle(v.r, v.c);
+      const on = s < VENT.on;
+      const warn = s > VENT.period - VENT.warn ? (s - (VENT.period - VENT.warn)) / VENT.warn : 0;
+      // column: shoots up fast, then thins out
+      const k = on ? Math.min(1, s / 0.12) * (1 - Math.max(0, (s - VENT.on + 0.25) / 0.25)) : 0;
+      const h = Math.max(0.001, k * city);
+      _m.compose(_p.set(v.x, 0, v.z), _q.identity(), _s.set(0.9 + k * 0.2, h, 0.9 + k * 0.2));
+      this.ventColMesh.setMatrixAt(i, _m);
+      this.ventColMesh.setColorAt(i, _c.setRGB(0.22 * k, 0.55 * k, 0.75 * k));
+      // grate: cool steel when idle, amber warning, white-blue during the blast, dull violet in the Breach
+      if (on) _c.setRGB(0.45, 0.8, 1.0);
+      else if (warn > 0) _c.setRGB(0.16 + warn * 0.9, 0.22 + warn * 0.4, 0.28 - warn * 0.15);
+      else _c.setRGB(0.16, 0.22, 0.28);
+      _c.lerp(_c2.setRGB(0.25, 0.14, 0.3), blend);
+      this.grateMesh.setColorAt(i, _c);
+      if (on && !v.wasOn && city > 0.5 && Math.abs(v.x - focusX) < 9 && Math.abs(v.z - focusZ) < 9) bursts++;
+      v.wasOn = on;
+    });
+    this.ventColMesh.instanceMatrix.needsUpdate = true;
+    this.ventColMesh.instanceColor.needsUpdate = true;
+    this.grateMesh.instanceColor.needsUpdate = true;
+    this.ventBursts = bursts;
+  }
+
   // Called after each hacked lock. Returns the gates that just opened.
   openGates(locksDone) {
     this.locksDone = locksDone;
@@ -925,6 +1001,8 @@ export class World {
       term.beam.material.opacity = 0.35 + 0.45 * active + Math.sin(t * 1.5 + term.x) * 0.06;
     }
 
+    this.updateVents(blend, focusX, focusZ);
+    if (this.ventColMesh) this.ventColMesh.material.map.offset.y = (-t * 2.5) % 1;
     if (this.gateTex) this.gateTex.offset.y = (t * 0.6) % 1;
     for (const gt of this.gates || []) {
       if (!gt.group.visible) continue;
@@ -981,6 +1059,36 @@ function gateNumberTexture(n) {
   g.fillStyle = "#ffd2a0"; g.font = "bold 64px monospace"; g.textAlign = "center"; g.textBaseline = "middle";
   g.fillText(String(n), 64, 68);
   const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Dark floor grate: slats with a bright rim, tinted per instance (idle / warning / blast).
+function grateTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  g.fillStyle = "rgba(10,14,20,0.95)"; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = "rgba(255,255,255,0.35)";
+  for (let x = 10; x < 56; x += 9) g.fillRect(x, 12, 2, 40);
+  g.strokeStyle = "rgba(255,255,255,0.8)"; g.lineWidth = 2; g.strokeRect(4, 4, 56, 56);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Vertical streaks for the coolant column, scrolled upward.
+function ventStreakTexture() {
+  const c = document.createElement("canvas");
+  c.width = 64; c.height = 64;
+  const g = c.getContext("2d");
+  const grd = g.createLinearGradient(0, 0, 0, 64);
+  grd.addColorStop(0, "rgba(255,255,255,0)"); grd.addColorStop(0.5, "rgba(255,255,255,0.35)"); grd.addColorStop(1, "rgba(255,255,255,0.9)");
+  g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+  g.fillStyle = "rgba(255,255,255,0.8)";
+  for (let i = 0; i < 9; i++) g.fillRect((i * 7 + 3) % 64, (i * 23) % 64, 2, 18);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }

@@ -12,6 +12,7 @@
 //   v  glass floor — walkway in CITY, void in BREACH (District 02+)
 //   d  drone (city)   t  turret (city)  w  wraith (breach)
 //   r  rift turret (breach)
+//   h  coolant vent — blasts in waves in the CITY, dormant in the BREACH (District 04+)
 //   1 2 3  security gate — solid in BOTH worlds until that many locks are hacked (District 03+)
 // ============================================================
 
@@ -152,6 +153,53 @@ export const LEVELS = [
     storyAfter: [
       { speaker: "DR. LENA VOSS", text: "Security's down. The admin logs say the hypersleep bay is below us. Dozens of pods, all still running." },
       { speaker: "DR. LENA VOSS", text: "Somebody's still alive in there, Calder. The pods take crew ID cards. Find one and we can wake them." },
+      { speaker: "DR. LENA VOSS", text: "First we go through the coolant works that keeps them frozen. The vents fire in waves. In the Breach they're dead, but the Breach is eating you too." },
+    ],
+  },
+  {
+    id: "d04",
+    name: "DISTRICT 04 // COOLANT WORKS",
+    briefing: [
+      "The plant that keeps the hypersleep bay frozen. Four locks: two terminals, two rift nodes.",
+      "NEW: coolant vents blast in waves in the CITY. Watch the grates glow, then cross in the gap, or DASH through.",
+      "In the BREACH the vents are dead, but your phase energy drains. Shift across, then shift back before you run dry.",
+    ],
+    legendExtra: "<i class='sw vent'></i> NEW: coolant vents fire in the CITY only (glowing grate = about to blast)",
+    map: [
+      "##############################################",
+      "##############################################",
+      "##L......##L..######.....#####.L~~~~.hh....L##",
+      "##.....c.##...######...d.#####..bbbb.hh.....##",
+      "##..T....##...######.....#####..bbbb.hh..R..##",
+      "##.....d.##...######.....#####..~~~~.hh...r.##",
+      "##.......##...######..........d.~~~~.hh.....##",
+      "##.c............................vvvv.hh.....##",
+      "##...........L..........L.......vvvv.hh..X..##",
+      "##...##......hhhhhhhhhhhhhhhhhhh~~~~.hht....##",
+      "##...##......hhhhhhhthhhhhhhhhhhhh..........##",
+      "##...........hhh.chhhhhhhhhhh..hhh.....##...##",
+      "##......c....hhh..hhhhhhrhhhh.chhh.....##...##",
+      "##L..........hhhhhhhh...hhhhhhhhhh.......w..##",
+      "##....w......hhhhhhhh.R.hhhhhhhhhh.........L##",
+      "##...........hhhhhhhh...hh.chhhhhh..........##",
+      "##...........hhhhhhhhhhhhh..hhhhhw..........##",
+      "##hhhhhhhhhh.hhhhhhhhhhhhhhhhhh..h..........##",
+      "##hhhhhhhhhh.hhhhh..hhhhhhhdhhh..h..........##",
+      "##...........hwhhh.chhhhhhhhhhhhhh..........##",
+      "##.....##....hhhhhhhhhhhhhhhhhhhhh......d..L##",
+      "##.....##...............L.........L.AAAAAAA.##",
+      "##...c...d.....####...........hhhhh.A.....A.##",
+      "##.........c...####.......####hhhhh.A.....A.##",
+      "##.......##....####.hhhhhh####...t..A.....A.##",
+      "##..P....##....####.hhhhhh####......A..T..A.##",
+      "##......c...w..####.hhwhhh####......A.....A.##",
+      "##L..........L.####.hhhhhh####.....LA.....A.##",
+      "##############################################",
+      "##############################################",
+    ],
+    storyAfter: [
+      { speaker: "DR. LENA VOSS", text: "Coolant's stable. The hypersleep bay is right below us, Calder. I'm reading one heartbeat. Faint, but real." },
+      { speaker: "UNKNOWN TRANSMISSION", text: "Personnel record found: crew ID card, last scanned in the hypersleep bay. Pod 07 is waiting for it." },
       { speaker: "NARRATOR", text: "To be continued in the next build." },
     ],
   },

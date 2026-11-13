@@ -301,3 +301,16 @@ Edit a number in the script, re-run it, and the model updates. The `.sc` design 
 **Story setup:** the briefing after District 03 points to the hypersleep bay. That's District 05: a room of pods where Jax finds a crew ID card that wakes a new playable character. More cards later unlock more pod characters, each with their own Shift/right-click ability (first one: **Remote Hack**). Tab will swap between unlocked characters.
 
 ![security gate](devlog/2026-11-13/30-security-gate.jpg)
+
+## Day 3 (cont.) — District 04 // COOLANT WORKS
+
+**New twist: coolant vents.** Floor grates that blast freezing coolant in waves rolling east across the map. The rule is pure SHIFT: they only fire in the **City**. In the **Breach** they're dead, but the Breach drains your phase energy, so every vent field is a choice:
+- time it: grates glow **amber** just before they fire, **blue jets** while blasting (12 damage, once per blast)
+- **dash** through (you're invulnerable mid-dash)
+- or **shift** across and race your energy bar back to solid City ground
+
+Layout: a vent band north of the start, a huge central coolant hall with safe islands around a rift node, a terminal sealed in a holo-barrier box behind another vent strip, and a void crossing with a vent ledge before the last rift node and the exit. The script check confirms all four locks and the exit are reachable.
+
+First pass looked like a glowing striped carpet with a white-out where the wave fired (60 additive jets + bloom). Toned the grates down and made the jets thinner and dimmer so each one reads on its own.
+
+![coolant vents](devlog/2026-11-13/31-coolant-vents.jpg)

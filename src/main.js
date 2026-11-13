@@ -142,6 +142,7 @@ function setAutoAim(on) {
   try { localStorage.setItem("pb-autoaim", on ? "on" : "off"); } catch (e) {}
 }
 const AIM = { range: 18 }; // lock range in world units
+const VENT_DAMAGE = 12;
 
 // ---------- movement style: "facing" (W = toward mouse, default) or "screen" (W = up) ----------
 function initialMoveMode() {
@@ -341,6 +342,8 @@ const HINTS = [
     text: "GLASS WALKWAY &nbsp;//&nbsp; it only exists in the <b class='c'>CITY</b>. Cross it, reach solid ground, <i>then</i> <kbd>SHIFT</kbd>." },
   { id: "rift", when: () => game.phase === BREACH && game.enemies.some(e => e.alive && e.type === "riftTurret" && Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z) < 14), dur: 6,
     text: "<b class='r'>RIFT TURRET</b> &nbsp;//&nbsp; it only exists in the Breach. Shoot it, or <kbd>SHIFT</kbd> to the City where it can't see you." },
+  { id: "vent", when: () => game.phase === CITY && nearTile("h", 2), dur: 10,
+    text: "<b class='c'>COOLANT VENTS</b> &nbsp;//&nbsp; they blast in waves. Wait for the gap, <kbd>SPACE</kbd> dash through, or <kbd>SHIFT</kbd>: they're dead in the <b class='r'>BREACH</b>." },
   { id: "gate", when: () => world.gates?.some(g => !g.open && Math.hypot(g.x - player.pos.x, g.z - player.pos.z) < 7), dur: 9,
     text: "<b style='color:#ffb347'>SECURITY GATE</b> &nbsp;//&nbsp; blocks BOTH worlds. Crack locks to cut its power: gate <b>1</b> drops after 1 lock, gate <b>2</b> after 2..." },
   { id: "exit", when: () => world.exit?.open, dur: 6,
@@ -646,6 +649,16 @@ function updatePlay(dt) {
 
   player.relativeMove = game.moveMode === "facing";
   const { dashed } = player.update(dt, input, world, game.phase);
+  // coolant vents (District 04+): a blast under you in the CITY hurts once per burst; dashing is safe
+  game.ventHitT = Math.max(0, (game.ventHitT || 0) - dt);
+  if (game.phase === CITY && player.alive && player.dashT <= 0 && game.ventHitT <= 0 && world.ventHitAt(player.pos.x, player.pos.z)) {
+    game.ventHitT = 0.9;
+    game.hurtPlayer(VENT_DAMAGE, player.pos.x, player.pos.z);
+  }
+  if (world.ventBursts && game.phase === CITY && (game.ventSfxT = (game.ventSfxT || 0) - dt) <= 0) {
+    audio.burst(5200, 0.6, 0.5, 0.05, "highpass");
+    game.ventSfxT = 0.35;
+  }
   if (dashed) {
     audio.dash();
     if (game.fx) player.spawnAfterimage(PALETTE[game.phase].accent);

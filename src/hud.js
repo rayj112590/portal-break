@@ -234,6 +234,7 @@ export class Hud {
           else if (ch === "v") fill = phase === CITY ? "#2a8fa8" : "#000";
           else if (ch === "A") fill = phase === CITY ? "#55e6ff" : "#1e3640";
           else if (ch === "B") fill = phase === BREACH ? "#ff3355" : "#3a1a22";
+          else if (ch === "h") fill = phase === CITY ? "#1f5566" : "#2a1a30";
           g.fillStyle = fill;
           g.fillRect(col * s, r * s, s, s);
         }
