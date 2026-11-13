@@ -59,6 +59,7 @@ export class World {
     this.lastBlend = -1;
 
     this.spawns = { player: null, enemies: [], terminals: [], exit: null, lamps: [] };
+    this.locksDone = 0; // security gates 1/2/3 stay shut until this many locks are hacked
     this.parseEntities();
     this.buildEnvironments(renderer);
     this.buildLights();
@@ -73,6 +74,8 @@ export class World {
     this.buildLamps();
     this.buildTerminals();
     this.buildExit();
+    this.buildGates();
+    this.computeLockTiers();
   }
 
   // ---------- grid helpers ----------
@@ -93,6 +96,7 @@ export class World {
       case "~": return mode === "walk";
       case "b": return mode === "walk" && phase === CITY;
       case "v": return mode === "walk" && phase === BREACH;
+      case "1": case "2": case "3": return Number(ch) > this.locksDone;
       default: return false;
     }
   }
@@ -747,6 +751,8 @@ export class World {
       t.ring.material.color.copy(col).multiplyScalar(1.5);
       t.beam.visible = true;
     }
+    this.locksDone = 0;
+    for (const gt of this.gates || []) { gt.open = false; gt.fade = 1; gt.group.visible = true; }
     if (this.exit) {
       this.exit.open = false;
       this.exitRingMat.color.setRGB(1.5, 0.2, 0.25);
@@ -755,6 +761,110 @@ export class World {
       this.exitLight.intensity = 6;
       this.exit.beam.visible = false;
     }
+  }
+
+  // ---------- security gates (District 03+) ----------
+  // Each connected run of the same digit is one gate: laser curtains across the opening,
+  // with a floating number. Gate N drops once N locks are hacked, in any order.
+  buildGates() {
+    this.gates = [];
+    const seen = new Set();
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) {
+      const ch = this.grid[r][c];
+      if (!"123".includes(ch) || seen.has(r * this.cols + c)) continue;
+      const tiles = [], stack = [[r, c]];
+      seen.add(r * this.cols + c);
+      while (stack.length) {
+        const [tr, tc] = stack.pop();
+        tiles.push([tr, tc]);
+        for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nr = tr + dr, nc = tc + dc, k = nr * this.cols + nc;
+          if (this.ch(nr, nc) === ch && !seen.has(k)) { seen.add(k); stack.push([nr, nc]); }
+        }
+      }
+      this.gates.push(this.makeGate(Number(ch), tiles));
+    }
+  }
+
+  makeGate(n, tiles) {
+    const rs = tiles.map(t => t[0]), cs = tiles.map(t => t[1]);
+    const r0 = Math.min(...rs), r1 = Math.max(...rs), c0 = Math.min(...cs), c1 = Math.max(...cs);
+    const alongZ = (r1 - r0) >= (c1 - c0);           // opening runs north-south -> curtains face east-west
+    const g = new THREE.Group();
+    const color = new THREE.Color(1.0, 0.45, 0.1);
+    if (!this.gateTex) this.gateTex = gateTexture();
+    const curtainMat = new THREE.MeshBasicMaterial({
+      map: this.gateTex, color: color.clone().multiplyScalar(2.2), transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const span = ((alongZ ? r1 - r0 : c1 - c0) + 1) * TILE;
+    const layers = alongZ ? [c0, c1] : [r0, r1];
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x20242e, metalness: 0.7, roughness: 0.4 });
+    const capMat = new THREE.MeshBasicMaterial({ color: color.clone().multiplyScalar(2.5) });
+    const mid = this.center((r0 + r1) / 2, (c0 + c1) / 2);
+    for (const L of layers) {
+      const curtain = new THREE.Mesh(new THREE.PlaneGeometry(span, 2.6), curtainMat);
+      const p = alongZ ? this.center(0, L) : this.center(L, 0);
+      curtain.position.set(alongZ ? p.x : mid.x, 1.3, alongZ ? mid.z : p.z);
+      if (alongZ) curtain.rotation.y = Math.PI / 2;
+      g.add(curtain);
+      // emitter posts at both ends of each curtain
+      for (const end of [-1, 1]) {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.9, 0.3), postMat);
+        const cap = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.12, 0.34), capMat);
+        const off = end * span / 2;
+        post.position.set(curtain.position.x + (alongZ ? 0 : off), 1.45, curtain.position.z + (alongZ ? off : 0));
+        cap.position.copy(post.position).setY(2.6);
+        post.castShadow = true;
+        g.add(post, cap);
+      }
+    }
+    // floating gate number so players can read the order at a glance
+    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: gateNumberTexture(n), transparent: true, depthWrite: false }));
+    label.scale.set(1.3, 1.3, 1);
+    label.position.set(mid.x, 3.5, mid.z);
+    g.add(label);
+    const light = new THREE.PointLight(0xff7a20, 10, 8, 1.6);
+    light.position.set(mid.x, 1.6, mid.z);
+    g.add(light);
+    this.group.add(g);
+    return { n, tiles, group: g, curtainMat, label, light, x: mid.x, z: mid.z, open: false, fade: 1 };
+  }
+
+  // Called after each hacked lock. Returns the gates that just opened.
+  openGates(locksDone) {
+    this.locksDone = locksDone;
+    const opened = [];
+    for (const gt of this.gates || []) if (!gt.open && gt.n <= locksDone) { gt.open = true; opened.push(gt); }
+    return opened;
+  }
+
+  // Which gate level each lock sits behind (walkable in either world), so the waypoint
+  // never points at a lock you can't reach yet.
+  computeLockTiers() {
+    const sp = this.spawns.player;
+    const maxGate = Math.max(0, ...(this.gates || []).map(g => g.n));
+    if (!sp) return;
+    const [sr, sc] = this.toTile(sp.x, sp.z);
+    for (let k = 0; k <= maxGate; k++) {
+      const seen = new Uint8Array(this.rows * this.cols);
+      const q = [[sr, sc]]; seen[sr * this.cols + sc] = 1;
+      while (q.length) {
+        const [r, c] = q.pop();
+        for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nr = r + dr, nc = c + dc;
+          if (!this.inside(nr, nc) || seen[nr * this.cols + nc]) continue;
+          const ch = this.grid[nr][nc];
+          if ("#cTR~".includes(ch) || ("123".includes(ch) && Number(ch) > k)) continue;
+          seen[nr * this.cols + nc] = 1; q.push([nr, nc]);
+        }
+      }
+      for (const t of this.terminals) {
+        if (t.tier !== undefined) continue;
+        if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dr, dc]) => this.inside(t.r + dr, t.c + dc) && seen[(t.r + dr) * this.cols + t.c + dc])) t.tier = k;
+      }
+    }
+    for (const t of this.terminals) if (t.tier === undefined) t.tier = 0;
   }
 
   openExit() {
@@ -815,6 +925,20 @@ export class World {
       term.beam.material.opacity = 0.35 + 0.45 * active + Math.sin(t * 1.5 + term.x) * 0.06;
     }
 
+    if (this.gateTex) this.gateTex.offset.y = (t * 0.6) % 1;
+    for (const gt of this.gates || []) {
+      if (!gt.group.visible) continue;
+      if (gt.open) {
+        gt.fade = Math.max(0, gt.fade - dt * 1.8);
+        if (gt.fade === 0) gt.group.visible = false;
+      }
+      const flick = gt.open ? (Math.sin(t * 60) > 0 ? 1 : 0.35) : 0.85 + Math.sin(t * 5 + gt.n) * 0.1;
+      gt.curtainMat.opacity = 0.9 * gt.fade * flick;
+      gt.light.intensity = 10 * gt.fade;
+      gt.label.material.opacity = gt.fade;
+      gt.label.position.y = 3.5 + Math.sin(t * 2 + gt.n) * 0.12;
+    }
+
     if (this.exit) {
       this.exit.ring1.rotation.y += dt * (this.exit.open ? 2.4 : 0.4);
       this.exit.ring2.rotation.x += dt * (this.exit.open ? 3.1 : 0.5);
@@ -826,4 +950,37 @@ export class World {
     this.assignLamps(focusX, focusZ, blend);
     this.followShadow(focusX, focusZ);
   }
+}
+
+// Horizontal laser lines with a soft glow, scrolled upward in update().
+function gateTexture() {
+  const c = document.createElement("canvas");
+  c.width = 64; c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "rgba(255,255,255,0.06)"; g.fillRect(0, 0, 64, 128);
+  for (let y = 4; y < 128; y += 16) {
+    const grd = g.createLinearGradient(0, y - 4, 0, y + 4);
+    grd.addColorStop(0, "rgba(255,255,255,0)"); grd.addColorStop(0.5, "rgba(255,255,255,1)"); grd.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = grd; g.fillRect(0, y - 4, 64, 8);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(4, 1);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Diamond badge with the gate number, used as a floating sprite.
+function gateNumberTexture(n) {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.strokeStyle = "#ff8a2a"; g.lineWidth = 8;
+  g.beginPath(); g.moveTo(64, 6); g.lineTo(122, 64); g.lineTo(64, 122); g.lineTo(6, 64); g.closePath();
+  g.fillStyle = "rgba(20,10,4,0.85)"; g.fill(); g.stroke();
+  g.fillStyle = "#ffd2a0"; g.font = "bold 64px monospace"; g.textAlign = "center"; g.textBaseline = "middle";
+  g.fillText(String(n), 64, 68);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
 }

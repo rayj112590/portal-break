@@ -12,6 +12,7 @@
 //   v  glass floor — walkway in CITY, void in BREACH (District 02+)
 //   d  drone (city)   t  turret (city)  w  wraith (breach)
 //   r  rift turret (breach)
+//   1 2 3  security gate — solid in BOTH worlds until that many locks are hacked (District 03+)
 // ============================================================
 
 export const LEVELS = [
@@ -103,7 +104,54 @@ export const LEVELS = [
       "##############################################",
     ],
     storyAfter: [
-      { speaker: "DR. LENA VOSS", text: "That's the transit levels behind us. Portal Zero is close now. I can feel the station shaking." },
+      { speaker: "DR. LENA VOSS", text: "That's the transit levels behind us. Next is cryo administration. Station security is still running there." },
+      { speaker: "DR. LENA VOSS", text: "Laser gates, Calder. Phasing won't get you through them. They're wired to the locks. Crack a lock and it reroutes power away from a gate." },
+    ],
+  },
+  {
+    id: "d03",
+    name: "DISTRICT 03 // CRYO ADMIN",
+    briefing: [
+      "Station security still guards the cryo wing. Four locks, four sealed zones.",
+      "NEW: orange laser gates block BOTH worlds. Each lock you crack drops the next gate: 1, then 2, then 3.",
+      "One terminal is sealed inside a holo-barrier box. Phase in through the wall, then shift back to hack it.",
+    ],
+    legendExtra: "<i class='sw gate'></i> NEW: security gates open as you crack locks (gate 1 after 1 lock, gate 2 after 2...)",
+    map: [
+      "##############################################",
+      "##############################################",
+      "##L......L~~~~~......L##L...A...A..........L##",
+      "##..X.....~~~~~.......##....A.T.A.........r.##",
+      "##........vvvvv..d.c..##....A...A........c..##",
+      "##.....w..vvvvv.......33....A...A.....d.....##",
+      "##........~~~~~.......33....AAAAA...........##",
+      "##.##.....~~~~~.##....33...w....L....c......##",
+      "##.##.w...~~~~~.##....##..........##........##",
+      "##.....c..~~~~~.......##..B.......##......t.##",
+      "##........bbbbb....t..##..B...w.........##..##",
+      "##...R....bbbbb.w.....##..B......c......##..##",
+      "##......r.~~~~~...c...##..B...c......d......##",
+      "##Lc......~~~~~......L##L..................L##",
+      "#####################################222######",
+      "#####################################222######",
+      "##L.................L.##L.....~~~~L........L##",
+      "##..........c.......t.##...c..~~~~.......r..##",
+      "##....T........##.....##......vvvv..........##",
+      "##.............##.d...##......vvvv..........##",
+      "##.....c..............##...d..~~~~.c........##",
+      "##.......##..L........11......~~~~......R...##",
+      "##.......##...........11......~~~~..c.....w.##",
+      "##....d............c..11..##..~~~~..........##",
+      "##.............c......##..##..bbbb..........##",
+      "##..P............w....##......bbbb....w.....##",
+      "##.........c..........##....t.~~~~.......c..##",
+      "##L.................L.##L.....~~~~.........L##",
+      "##############################################",
+      "##############################################",
+    ],
+    storyAfter: [
+      { speaker: "DR. LENA VOSS", text: "Security's down. The admin logs say the hypersleep bay is below us. Dozens of pods, all still running." },
+      { speaker: "DR. LENA VOSS", text: "Somebody's still alive in there, Calder. The pods take crew ID cards. Find one and we can wake them." },
       { speaker: "NARRATOR", text: "To be continued in the next build." },
     ],
   },

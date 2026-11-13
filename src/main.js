@@ -341,6 +341,8 @@ const HINTS = [
     text: "GLASS WALKWAY &nbsp;//&nbsp; it only exists in the <b class='c'>CITY</b>. Cross it, reach solid ground, <i>then</i> <kbd>SHIFT</kbd>." },
   { id: "rift", when: () => game.phase === BREACH && game.enemies.some(e => e.alive && e.type === "riftTurret" && Math.hypot(e.pos.x - player.pos.x, e.pos.z - player.pos.z) < 14), dur: 6,
     text: "<b class='r'>RIFT TURRET</b> &nbsp;//&nbsp; it only exists in the Breach. Shoot it, or <kbd>SHIFT</kbd> to the City where it can't see you." },
+  { id: "gate", when: () => world.gates?.some(g => !g.open && Math.hypot(g.x - player.pos.x, g.z - player.pos.z) < 7), dur: 9,
+    text: "<b style='color:#ffb347'>SECURITY GATE</b> &nbsp;//&nbsp; blocks BOTH worlds. Crack locks to cut its power: gate <b>1</b> drops after 1 lock, gate <b>2</b> after 2..." },
   { id: "exit", when: () => world.exit?.open, dur: 6,
     text: "All locks breached &nbsp;//&nbsp; follow the marker to the <b class='c'>EXIT PORTAL</b>" },
 ];
@@ -571,10 +573,20 @@ function completeTerminal(t) {
   updateObjective();
   // checkpoint: where you stood (and which world) when the lock fell
   game.checkpoint = { x: player.pos.x, z: player.pos.z, phase: game.phase };
+  // security gates (District 03+): each hacked lock powers down the next gate
+  const opened = world.openGates(done);
+  for (const gt of opened) {
+    shockwaves.spawn(gt.x, gt.z, new THREE.Color(1, 0.55, 0.2), 6, 0.5);
+    flashes.flash(gt.x, 2, gt.z, 0xff8a2a, 10 * game.fx, 0.5, 10);
+  }
+  if (opened.length) game.flowKey = "";   // wraiths can path through it now
   if (done === total) {
     world.openExit();
     audio.portalOpen();
     hud.toast("ALL LOCKS BREACHED // PORTAL ONLINE", "#55e6ff");
+  } else if (opened.length) {
+    audio.portalOpen();
+    hud.toast(`LOCK ${done}/${total} BREACHED // SECURITY GATE ${opened.map(g => g.n).join(" + ")} OFFLINE`, "#ffb347");
   } else {
     hud.toast(`LOCK ${done}/${total} BREACHED // CHECKPOINT SAVED`, "#7df5bc");
   }

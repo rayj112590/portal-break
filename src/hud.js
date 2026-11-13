@@ -171,7 +171,7 @@ export class Hud {
     else {
       let best = Infinity;
       for (const t of world.terminals) {
-        if (t.hacked) continue;
+        if (t.hacked || (t.tier || 0) > world.locksDone) continue;   // skip locks still behind a gate
         const d = Math.hypot(t.x - player.pos.x, t.z - player.pos.z);
         if (d < best) { best = d; target = t; }
       }
@@ -258,6 +258,11 @@ export class Hud {
       g.rotate(Math.PI / 4);
       g.fillRect(-3, -3, 6, 6);
       g.restore();
+    }
+    for (const gt of game.world.gates || []) {
+      if (gt.open) continue;
+      g.fillStyle = "#ff8a2a";
+      for (const [r, c] of gt.tiles) g.fillRect(c * this.mmScale, r * this.mmScale, this.mmScale, this.mmScale);
     }
     const ex = game.world.exit;
     if (ex) {
