@@ -1,0 +1,12 @@
+.workbuddy-ai/
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Blender / SolidCraft backups and scratch files
+*.blend1
+*.bak
+art/solidcraft/test.*
+
+# character reference sheets (not ours to republish)
+art/reference/

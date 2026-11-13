@@ -1,0 +1,529 @@
+[
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 900,
+   "width": 620,
+   "height": 80,
+   "center": [
+    0,
+    0,
+    40
+   ],
+   "body_name": "Plinth"
+  }
+ },
+ {
+  "command": "solid.chamfer",
+  "params": {
+   "body": "Plinth",
+   "distance": 20,
+   "tangent_chain": false,
+   "edges": [
+    [
+     0,
+     -310,
+     80
+    ],
+    [
+     0,
+     310,
+     80
+    ],
+    [
+     -450,
+     0,
+     80
+    ],
+    [
+     450,
+     0,
+     80
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 700,
+   "width": 440,
+   "height": 1000,
+   "center": [
+    0,
+    40,
+    580
+   ],
+   "body_name": "Body"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "Body",
+   "radius": 30,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -350,
+     -180,
+     580
+    ],
+    [
+     -350,
+     260,
+     580
+    ],
+    [
+     350,
+     -180,
+     580
+    ],
+    [
+     350,
+     260,
+     580
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    -350,
+    60,
+    300
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    350,
+    60,
+    300
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    -350,
+    60,
+    370
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    350,
+    60,
+    370
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    -350,
+    60,
+    440
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    350,
+    60,
+    440
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    -350,
+    60,
+    510
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    350,
+    60,
+    510
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    -350,
+    60,
+    580
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    350,
+    60,
+    580
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    -350,
+    60,
+    650
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 60,
+   "width": 300,
+   "height": 26,
+   "center": [
+    350,
+    60,
+    650
+   ],
+   "operation": "cut",
+   "targets": [
+    "Body"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 700,
+   "width": 460,
+   "height": 70,
+   "center": [
+    0,
+    0,
+    0
+   ],
+   "body_name": "Console"
+  }
+ },
+ {
+  "command": "solid.move",
+  "params": {
+   "bodies": [
+    "Console"
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "angle": "28 deg"
+  }
+ },
+ {
+  "command": "solid.move",
+  "params": {
+   "bodies": [
+    "Console"
+   ],
+   "translate": [
+    0,
+    -20,
+    1135
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 620,
+   "width": 40,
+   "height": 400,
+   "center": [
+    0,
+    -182,
+    770
+   ],
+   "body_name": "Bezel"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 540,
+   "width": 60,
+   "height": 320,
+   "center": [
+    0,
+    -182,
+    770
+   ],
+   "operation": "cut",
+   "targets": [
+    "Bezel"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 540,
+   "width": 10,
+   "height": 320,
+   "center": [
+    0,
+    -178,
+    770
+   ],
+   "body_name": "Screen"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 520,
+   "width": 200,
+   "height": 24,
+   "center": [
+    0,
+    0,
+    0
+   ],
+   "body_name": "Keypad"
+  }
+ },
+ {
+  "command": "solid.move",
+  "params": {
+   "bodies": [
+    "Keypad"
+   ],
+   "axis": [
+    1,
+    0,
+    0
+   ],
+   "angle": "28 deg"
+  }
+ },
+ {
+  "command": "solid.move",
+  "params": {
+   "bodies": [
+    "Keypad"
+   ],
+   "translate": [
+    0,
+    -42,
+    1176
+   ]
+  }
+ },
+ {
+  "command": "solid.cylinder",
+  "params": {
+   "radius": 40,
+   "height": 900,
+   "base": [
+    0,
+    280,
+    80
+   ],
+   "axis": "Z",
+   "body_name": "Conduit"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 860,
+   "width": 8,
+   "height": 14,
+   "center": [
+    0,
+    -312,
+    70
+   ],
+   "body_name": "TrimBase"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 8,
+   "width": 380,
+   "height": 14,
+   "center": [
+    -352,
+    40,
+    1050
+   ],
+   "body_name": "TrimSideL"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 8,
+   "width": 380,
+   "height": 14,
+   "center": [
+    352,
+    40,
+    1050
+   ],
+   "body_name": "TrimSideR"
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Plinth",
+    "Body",
+    "Conduit"
+   ],
+   "color": "#232833",
+   "pbr": {
+    "metallic": 0.7,
+    "roughness": 0.4,
+    "dielectric_ior": 1.5
+   }
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Console",
+    "Bezel",
+    "Keypad"
+   ],
+   "color": "#151820",
+   "pbr": {
+    "metallic": 0.6,
+    "roughness": 0.45,
+    "dielectric_ior": 1.5
+   }
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Screen"
+   ],
+   "color": "#40e0ff"
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "TrimBase",
+    "TrimSideL",
+    "TrimSideR"
+   ],
+   "color": "#40e0ff"
+  }
+ }
+]

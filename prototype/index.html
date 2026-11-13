@@ -1,0 +1,230 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090d1a">
+  <meta name="description" content="Portal Break — a sci-fi portal puzzle adventure with abilities, side missions, and crossover events.">
+  <title>Portal Break</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <header class="game-header">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">◈</span>
+        <div>
+          <h1>PORTAL BREAK</h1>
+          <p class="subtitle">A dimensional escape adventure</p>
+        </div>
+      </div>
+
+      <div class="status-panel">
+        <span class="status-label">SYSTEM STATUS</span>
+        <span id="system-status" class="status-value">STANDBY</span>
+      </div>
+    </header>
+
+    <section class="game-layout" aria-label="Game">
+      <div class="game-panel">
+        <div class="panel-heading">
+          <span id="level-name">SECTOR 01: THE AWAKENING</span>
+          <span id="portal-status">PORTAL OFFLINE</span>
+        </div>
+
+        <div id="game-container" class="game-container">
+          <canvas
+            id="game-canvas"
+            width="800"
+            height="500"
+            aria-label="Portal Break game area"
+            role="img"
+          ></canvas>
+
+          <!-- Story Screen (opening narrative) -->
+          <div id="story-screen" class="screen-overlay hidden">
+            <div class="title-emblem" aria-hidden="true">◈</div>
+            <p class="eyebrow">STATION ZERO // EMERGENCY TRANSMISSION</p>
+            <h2 id="story-heading">WAKE UP, EXPLORER.</h2>
+            <p id="story-text" class="intro">
+              Life support failing. Station systems compromised.
+              Your identity could not be verified.
+            </p>
+            <p id="story-speaker" class="small-note">STATION COMPUTER</p>
+            <button id="story-next-button" class="primary-button" type="button">
+              CONTINUE
+            </button>
+          </div>
+
+          <!-- Start Screen -->
+          <div id="start-screen" class="screen-overlay">
+            <div class="title-emblem" aria-hidden="true">◉</div>
+            <p class="eyebrow">DIMENSIONAL CONTAINMENT BREACH</p>
+            <h2>FIND YOUR WAY OUT.</h2>
+            <p class="intro">
+              The facility is failing. The portals are unstable.
+              Five sectors stand between you and the truth.
+              Collect materials, unlock abilities, complete side missions.
+              Stop the breach.
+            </p>
+            <button id="start-button" class="primary-button" type="button">
+              INITIALIZE ESCAPE
+            </button>
+            <p class="small-note">A new adventure begins here.</p>
+          </div>
+
+          <!-- End Screen -->
+          <div id="end-screen" class="screen-overlay hidden">
+            <div class="title-emblem" aria-hidden="true">✦</div>
+            <p class="eyebrow">MISSION REPORT</p>
+            <h2 id="end-title">MISSION COMPLETE</h2>
+            <p id="end-message" class="intro">
+              You made it through.
+            </p>
+            <button id="restart-button" class="primary-button" type="button">
+              CONTINUE
+            </button>
+          </div>
+
+          <!-- Level Intro Screen -->
+          <div id="level-intro-screen" class="screen-overlay hidden">
+            <div class="title-emblem" aria-hidden="true">⬡</div>
+            <p class="eyebrow">ENTERING SECTOR</p>
+            <h2 id="level-intro-name">SECTOR 01</h2>
+            <p id="level-intro-story" class="intro">
+              Sector briefing text.
+            </p>
+            <button id="level-intro-button" class="primary-button" type="button">
+              ENTER SECTOR
+            </button>
+          </div>
+
+          <!-- Unlock Screen -->
+          <div id="unlock-screen" class="screen-overlay hidden">
+            <div class="title-emblem unlock-emblem" aria-hidden="true">★</div>
+            <p class="eyebrow">UNLOCKED</p>
+            <h2 id="unlock-title">NEW UNLOCK</h2>
+            <p id="unlock-body" class="intro">
+              You have unlocked something new.
+            </p>
+            <button id="unlock-button" class="primary-button" type="button">
+              CONTINUE
+            </button>
+          </div>
+
+          <!-- Character Select -->
+          <div id="character-select" class="screen-overlay hidden">
+            <div class="title-emblem" aria-hidden="true">♗</div>
+            <p class="eyebrow">SELECT YOUR EXPLORER</p>
+            <h2>CHARACTER SELECT</h2>
+            <div id="character-grid" class="character-grid"></div>
+            <button id="char-select-close" class="primary-button" type="button">
+              DONE
+            </button>
+          </div>
+        </div>
+
+        <div class="game-footer">
+          <span>EXPLORER: UNKNOWN</span>
+          <span id="objective">OBJECTIVE: AWAITING INITIALIZATION</span>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <section class="info-card">
+          <h3>MISSION OBJECTIVE</h3>
+          <p id="mission-text">
+            Initialize the system to begin your escape.
+          </p>
+        </section>
+
+        <section class="info-card">
+          <h3>EXPLORER STATUS</h3>
+          <div class="stat-row">
+            <span>Energy</span>
+            <strong id="energy-value">100%</strong>
+          </div>
+          <div class="energy-track">
+            <div id="energy-bar" class="energy-fill"></div>
+          </div>
+          <div class="stat-row">
+            <span>Artifacts</span>
+            <strong id="artifact-count">0</strong>
+          </div>
+          <div class="stat-row">
+            <span>Sector</span>
+            <strong id="sector-value">01</strong>
+          </div>
+        </section>
+
+        <!-- Abilities Panel -->
+        <section class="info-card abilities-card">
+          <h3>ABILITIES</h3>
+          <div id="ability-slots" class="ability-slots"></div>
+          <div class="teleport-info">
+            <span class="teleport-label">SHIFT to Phase Shift</span>
+            <span>Charges: <strong id="teleport-charges">0</strong></span>
+          </div>
+        </section>
+
+        <!-- Materials Panel -->
+        <section class="info-card">
+          <h3>MATERIALS</h3>
+          <div id="material-list" class="material-list"></div>
+        </section>
+
+        <!-- Controls -->
+        <section class="info-card controls-card">
+          <h3>CONTROLS</h3>
+          <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> Move</p>
+          <p><kbd>SHIFT</kbd> Phase Shift (teleport)</p>
+          <p><kbd>Q</kbd> Time Freeze</p>
+          <p><kbd>E</kbd> Speed Surge</p>
+          <p><kbd>F</kbd> Cloak (invisibility)</p>
+          <p><kbd>R</kbd> Restart sector</p>
+        </section>
+
+        <!-- Side Missions -->
+        <section class="info-card">
+          <h3>SIDE MISSIONS</h3>
+          <div id="side-mission-list" class="side-mission-list"></div>
+        </section>
+
+        <!-- Field Log -->
+        <section class="info-card">
+          <h3>FIELD LOG</h3>
+          <p id="field-log" aria-live="polite">
+            System ready. Awaiting explorer input.
+          </p>
+        </section>
+
+        <!-- Journal -->
+        <section class="info-card">
+          <h3>RECOVERED DATA</h3>
+          <p id="journal-count">0 clues discovered</p>
+          <button id="journal-button" class="primary-button" type="button">
+            OPEN JOURNAL
+          </button>
+          <div id="journal-entries" class="hidden"></div>
+        </section>
+
+        <!-- Character Select Button -->
+        <section class="info-card">
+          <h3>EXPLORER</h3>
+          <button id="char-select-toggle" class="primary-button" type="button">
+            CHANGE CHARACTER
+          </button>
+        </section>
+      </aside>
+    </section>
+
+    <footer class="page-footer">
+      <span>PORTAL BREAK</span>
+      <span>BUILD 0.5 — ABILITY UPDATE</span>
+      <span>AN EXPERIMENT IN OTHER WORLDS</span>
+    </footer>
+  </main>
+</body>
+</html>

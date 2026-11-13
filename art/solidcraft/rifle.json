@@ -1,0 +1,952 @@
+[
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 300,
+   "width": 44,
+   "height": 70,
+   "center": [
+    0,
+    0,
+    0
+   ],
+   "body_name": "Receiver"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "Receiver",
+   "radius": 6,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -150.0,
+     -22.0,
+     0
+    ],
+    [
+     -150.0,
+     22.0,
+     0
+    ],
+    [
+     150.0,
+     -22.0,
+     0
+    ],
+    [
+     150.0,
+     22.0,
+     0
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.chamfer",
+  "params": {
+   "body": "Receiver",
+   "distance": 5,
+   "tangent_chain": false,
+   "edges": [
+    [
+     0,
+     -22.0,
+     35.0
+    ],
+    [
+     0,
+     22.0,
+     35.0
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 50,
+   "height": 18,
+   "center": [
+    40,
+    0,
+    12
+   ],
+   "operation": "cut",
+   "targets": [
+    "Receiver"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 250,
+   "width": 22,
+   "height": 10,
+   "center": [
+    -10,
+    0,
+    40
+   ],
+   "body_name": "Rail"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -125.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -107.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -90.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -72.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -55.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -37.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -20.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    -2.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    15.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    32.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    50.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    67.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    85.0,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 7,
+   "width": 30,
+   "height": 6,
+   "center": [
+    102.5,
+    0,
+    44
+   ],
+   "operation": "cut",
+   "targets": [
+    "Rail"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 220,
+   "width": 52,
+   "height": 56,
+   "center": [
+    255,
+    0,
+    4
+   ],
+   "body_name": "Handguard"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "Handguard",
+   "radius": 8,
+   "tangent_chain": false,
+   "edges": [
+    [
+     145.0,
+     -26.0,
+     4
+    ],
+    [
+     145.0,
+     26.0,
+     4
+    ],
+    [
+     365.0,
+     -26.0,
+     4
+    ],
+    [
+     365.0,
+     26.0,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.chamfer",
+  "params": {
+   "body": "Handguard",
+   "distance": 6,
+   "tangent_chain": false,
+   "edges": [
+    [
+     255,
+     -26.0,
+     32.0
+    ],
+    [
+     255,
+     26.0,
+     32.0
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 26,
+   "width": 70,
+   "height": 12,
+   "center": [
+    185,
+    0,
+    8
+   ],
+   "operation": "cut",
+   "targets": [
+    "Handguard"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 26,
+   "width": 70,
+   "height": 12,
+   "center": [
+    219,
+    0,
+    8
+   ],
+   "operation": "cut",
+   "targets": [
+    "Handguard"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 26,
+   "width": 70,
+   "height": 12,
+   "center": [
+    253,
+    0,
+    8
+   ],
+   "operation": "cut",
+   "targets": [
+    "Handguard"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 26,
+   "width": 70,
+   "height": 12,
+   "center": [
+    287,
+    0,
+    8
+   ],
+   "operation": "cut",
+   "targets": [
+    "Handguard"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 26,
+   "width": 70,
+   "height": 12,
+   "center": [
+    321,
+    0,
+    8
+   ],
+   "operation": "cut",
+   "targets": [
+    "Handguard"
+   ]
+  }
+ },
+ {
+  "command": "solid.cylinder",
+  "params": {
+   "radius": 11,
+   "height": 175,
+   "base": [
+    362,
+    0,
+    10
+   ],
+   "axis": "X",
+   "body_name": "Barrel"
+  }
+ },
+ {
+  "command": "solid.cylinder",
+  "params": {
+   "radius": 17,
+   "height": 55,
+   "base": [
+    530,
+    0,
+    10
+   ],
+   "axis": "X",
+   "body_name": "Brake"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 8,
+   "width": 50,
+   "height": 9,
+   "center": [
+    545,
+    0,
+    10
+   ],
+   "operation": "cut",
+   "targets": [
+    "Brake"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 8,
+   "width": 50,
+   "height": 9,
+   "center": [
+    559,
+    0,
+    10
+   ],
+   "operation": "cut",
+   "targets": [
+    "Brake"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 8,
+   "width": 50,
+   "height": 9,
+   "center": [
+    573,
+    0,
+    10
+   ],
+   "operation": "cut",
+   "targets": [
+    "Brake"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 34,
+   "height": 125,
+   "center": [
+    45,
+    0,
+    -92
+   ],
+   "body_name": "Magazine"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "Magazine",
+   "radius": 4,
+   "tangent_chain": false,
+   "edges": [
+    [
+     25.0,
+     -17.0,
+     -92
+    ],
+    [
+     25.0,
+     17.0,
+     -92
+    ],
+    [
+     65.0,
+     -17.0,
+     -92
+    ],
+    [
+     65.0,
+     17.0,
+     -92
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.move",
+  "params": {
+   "bodies": [
+    "Magazine"
+   ],
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "angle": "-10 deg"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 34,
+   "width": 36,
+   "height": 105,
+   "center": [
+    -72,
+    0,
+    -78
+   ],
+   "body_name": "Grip"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "Grip",
+   "radius": 9,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -89.0,
+     -18.0,
+     -78
+    ],
+    [
+     -89.0,
+     18.0,
+     -78
+    ],
+    [
+     -55.0,
+     -18.0,
+     -78
+    ],
+    [
+     -55.0,
+     18.0,
+     -78
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.move",
+  "params": {
+   "bodies": [
+    "Grip"
+   ],
+   "axis": [
+    0,
+    1,
+    0
+   ],
+   "angle": "16 deg"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 62,
+   "width": 10,
+   "height": 8,
+   "center": [
+    -30,
+    0,
+    -52
+   ],
+   "body_name": "TriggerGuard"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 180,
+   "width": 40,
+   "height": 62,
+   "center": [
+    -238,
+    0,
+    -6
+   ],
+   "body_name": "Stock"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "Stock",
+   "radius": 8,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -328.0,
+     -20.0,
+     -6
+    ],
+    [
+     -328.0,
+     20.0,
+     -6
+    ],
+    [
+     -148.0,
+     -20.0,
+     -6
+    ],
+    [
+     -148.0,
+     20.0,
+     -6
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.chamfer",
+  "params": {
+   "body": "Stock",
+   "distance": 5,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -238,
+     -20.0,
+     25.0
+    ],
+    [
+     -238,
+     20.0,
+     25.0
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.cylinder",
+  "params": {
+   "radius": 17,
+   "height": 60,
+   "base": [
+    -238,
+    -30,
+    -4
+   ],
+   "axis": "Y",
+   "operation": "cut",
+   "targets": [
+    "Stock"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 18,
+   "width": 46,
+   "height": 84,
+   "center": [
+    -337,
+    0,
+    -8
+   ],
+   "body_name": "ButtPad"
+  }
+ },
+ {
+  "command": "solid.fillet",
+  "params": {
+   "body": "ButtPad",
+   "radius": 6,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -346.0,
+     -23.0,
+     -8
+    ],
+    [
+     -346.0,
+     23.0,
+     -8
+    ],
+    [
+     -328.0,
+     -23.0,
+     -8
+    ],
+    [
+     -328.0,
+     23.0,
+     -8
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.cylinder",
+  "params": {
+   "radius": 16,
+   "height": 120,
+   "base": [
+    -60,
+    0,
+    66
+   ],
+   "axis": "X",
+   "body_name": "Optic"
+  }
+ },
+ {
+  "command": "solid.cylinder",
+  "params": {
+   "radius": 13,
+   "height": 4,
+   "base": [
+    61,
+    0,
+    66
+   ],
+   "axis": "X",
+   "body_name": "OpticLens"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 90,
+   "width": 20,
+   "height": 18,
+   "center": [
+    0,
+    0,
+    52
+   ],
+   "body_name": "OpticMounts"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 2,
+   "height": 6,
+   "center": [
+    255,
+    27,
+    10
+   ],
+   "body_name": "TrimL"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 2,
+   "height": 6,
+   "center": [
+    255,
+    -27,
+    10
+   ],
+   "body_name": "TrimR"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 120,
+   "width": 6,
+   "height": 2,
+   "center": [
+    -10,
+    0,
+    46
+   ],
+   "body_name": "TrimTop"
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Receiver",
+    "Barrel",
+    "Brake",
+    "Magazine",
+    "Grip",
+    "TriggerGuard",
+    "Rail",
+    "OpticMounts"
+   ],
+   "color": "#1b1d23",
+   "pbr": {
+    "metallic": 0.85,
+    "roughness": 0.35,
+    "dielectric_ior": 1.5
+   }
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Handguard",
+    "Stock",
+    "ButtPad",
+    "Optic"
+   ],
+   "color": "#2c313b",
+   "pbr": {
+    "metallic": 0.5,
+    "roughness": 0.5,
+    "dielectric_ior": 1.5
+   }
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "TrimL",
+    "TrimR",
+    "TrimTop",
+    "OpticLens"
+   ],
+   "color": "#40e0ff"
+  }
+ }
+]

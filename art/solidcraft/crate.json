@@ -1,0 +1,588 @@
+[
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 1700,
+   "width": 1700,
+   "height": 1150,
+   "center": [
+    0,
+    0,
+    575.0
+   ],
+   "body_name": "Shell"
+  }
+ },
+ {
+  "command": "solid.chamfer",
+  "params": {
+   "body": "Shell",
+   "distance": 40,
+   "tangent_chain": false,
+   "edges": [
+    [
+     -850.0,
+     -850.0,
+     575.0
+    ],
+    [
+     -850.0,
+     850.0,
+     575.0
+    ],
+    [
+     850.0,
+     -850.0,
+     575.0
+    ],
+    [
+     850.0,
+     850.0,
+     575.0
+    ]
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    -560,
+    -850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    -560,
+    850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    -850.0,
+    -560,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    850.0,
+    -560,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    -280,
+    -850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    -280,
+    850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    -850.0,
+    -280,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    850.0,
+    -280,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    0,
+    -850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    0,
+    850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    -850.0,
+    0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    850.0,
+    0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    280,
+    -850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    280,
+    850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    -850.0,
+    280,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    850.0,
+    280,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    560,
+    -850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 70,
+   "width": 40,
+   "height": 900,
+   "center": [
+    560,
+    850.0,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    -850.0,
+    560,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 40,
+   "width": 70,
+   "height": 900,
+   "center": [
+    850.0,
+    560,
+    575.0
+   ],
+   "operation": "cut",
+   "targets": [
+    "Shell"
+   ]
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    -780.0,
+    -780.0,
+    60
+   ],
+   "body_name": "Corner-1-160"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    -780.0,
+    -780.0,
+    1090
+   ],
+   "body_name": "Corner-1-11090"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    -780.0,
+    780.0,
+    60
+   ],
+   "body_name": "Corner-1160"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    -780.0,
+    780.0,
+    1090
+   ],
+   "body_name": "Corner-111090"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    780.0,
+    -780.0,
+    60
+   ],
+   "body_name": "Corner1-160"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    780.0,
+    -780.0,
+    1090
+   ],
+   "body_name": "Corner1-11090"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    780.0,
+    780.0,
+    60
+   ],
+   "body_name": "Corner1160"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 160,
+   "width": 160,
+   "height": 120,
+   "center": [
+    780.0,
+    780.0,
+    1090
+   ],
+   "body_name": "Corner111090"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 1580,
+   "width": 1580,
+   "height": 30,
+   "center": [
+    0,
+    0,
+    1165
+   ],
+   "body_name": "Lid"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 1710,
+   "width": 1710,
+   "height": 60,
+   "center": [
+    0,
+    0,
+    950
+   ],
+   "body_name": "Stripe"
+  }
+ },
+ {
+  "command": "solid.box",
+  "params": {
+   "length": 1680,
+   "width": 1680,
+   "height": 80,
+   "center": [
+    0,
+    0,
+    950
+   ],
+   "operation": "cut",
+   "targets": [
+    "Stripe"
+   ]
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Shell"
+   ],
+   "color": "#3a404f",
+   "pbr": {
+    "metallic": 0.6,
+    "roughness": 0.5,
+    "dielectric_ior": 1.5
+   }
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Lid",
+    "Corner-1-160",
+    "Corner-1-11090",
+    "Corner-1160",
+    "Corner-111090",
+    "Corner1-160",
+    "Corner1-11090",
+    "Corner1160",
+    "Corner111090"
+   ],
+   "color": "#222630",
+   "pbr": {
+    "metallic": 0.75,
+    "roughness": 0.4,
+    "dielectric_ior": 1.5
+   }
+  }
+ },
+ {
+  "command": "appearance.assign",
+  "params": {
+   "bodies": [
+    "Stripe"
+   ],
+   "color": "#ffb347"
+  }
+ }
+]

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#070b18">
+  <meta name="description" content="Portal Break: an isometric neon shooter where SHIFT phases you between two worlds. Game Off 2026.">
+  <title>Portal Break</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="game">
+    <div id="viewport"></div>
+    <div id="fx-flash"></div>
+    <div id="labels"></div>
+
+    <div id="hud" class="hidden" data-phase="city">
+      <div class="hud-tl">
+        <div class="callsign">J. CALDER <span>// STATUS: TERMINATED?</span></div>
+        <div class="bar hp"><div id="hp-fill"></div><span id="hp-text">100</span></div>
+        <div class="bar energy"><div id="energy-fill"></div><span>PHASE</span></div>
+      </div>
+
+      <div class="hud-tc">
+        <div id="district-name">DISTRICT</div>
+        <div id="objective-text">OBJECTIVE</div>
+      </div>
+
+      <div class="hud-tr">
+        <canvas id="minimap" width="184" height="120"></canvas>
+      </div>
+
+      <div class="hud-bl">
+        <div class="ability"><kbd>SPACE</kbd><span>DASH</span><i id="dash-cd"></i></div>
+        <div class="ability locked"><kbd>Q</kbd><span>FREEZE</span></div>
+        <div class="ability locked"><kbd>E</kbd><span>SURGE</span></div>
+        <div class="ability locked"><kbd>F</kbd><span>CLOAK</span></div>
+      </div>
+
+      <div class="hud-bc">
+        <div id="phase-indicator" data-phase="city">
+          <span class="ph city">CITY</span>
+          <kbd>SHIFT</kbd>
+          <span class="ph breach">BREACH</span>
+        </div>
+        <div class="phase-cd"><i id="phase-cd-fill"></i></div>
+      </div>
+
+      <div id="toast"></div>
+      <div id="hint"></div>
+    </div>
+
+    <div id="lock" class="hidden"><i></i><i></i><i></i><i></i></div>
+    <div id="waypoint" class="hidden"><i class="wp-arrow"></i><span class="wp-label"></span></div>
+
+    <div id="crosshair" class="hidden"><i></i><i></i><i></i><i></i></div>
+    <div id="rec" class="hidden">● REC</div>
+    <div id="overlay" class="overlay"></div>
+    <noscript><div class="overlay"><div class="panel"><h2>Portal Break needs JavaScript and WebGL.</h2></div></div></noscript>
+  </div>
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
