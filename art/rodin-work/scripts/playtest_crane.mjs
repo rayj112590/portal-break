@@ -193,7 +193,8 @@ try {
   // ---- District 05: supply crate with a revive cell ----
   await enter(4);
   const s8 = await ev("({ char: __game.char, crew: __game.crew.join(','), props: __game.world.props.map(p => p.ch + (p.loot || '')).join(',') })");
-  check("D05 starts with Rook (needs), Crane in the crew, 4 heavy + 2 supply crates (rail, cell)", s8.char === "rook" && s8.crew === "jax,rook,crane" && s8.props.includes("$rail") && s8.props.includes("$cell") && s8.props.split(",").filter(s => s === "m").length === 4, JSON.stringify(s8));
+  // Nov 19: the squad lists the lead first, and the portal room has 6 more heavy crates for the Warden fight
+  check("D05 starts with Rook (needs, leads), Crane in the squad, heavy crates (10 with the Warden's) + 2 supply crates (rail, cell)", s8.char === "rook" && s8.crew.split(",")[0] === "rook" && s8.crew.split(",").sort().join(",") === "crane,jax,rook" && s8.props.includes("$rail") && s8.props.includes("$cell") && s8.props.split(",").filter(s => s === "m").length >= 4, JSON.stringify(s8));
   await waitFor("__game.swapCd === 0"); await key("Digit3");
   await waitFor("__game.char === 'crane'");
   const c0 = await ev("__game.cells");

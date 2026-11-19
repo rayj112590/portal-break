@@ -38,6 +38,8 @@ const shot = async name => {
   writeFileSync(path.join(OUT, name), Buffer.from(r.result.data, "base64"));
 };
 const click = sel => ev(`(() => { const b = document.querySelector('${sel}'); if (!b) throw new Error('no ${sel}'); b.click(); return true; })()`);
+// with two or more crew awake, ENTER on the briefing opens the crew screen (Nov 19): ENTER again deploys
+const deployIfCrew = async () => { await sleep(400); if (await ev("__game.state === 'crew'")) { await ev("window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' })); true"); await sleep(400); } };
 const results = [];
 const check = (label, ok, detail = "") => results.push(`${ok ? "PASS" : "FAIL"}  ${label}${detail ? "  (" + detail + ")" : ""}`);
 
@@ -69,6 +71,7 @@ try {
   await ev("window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' })); true"); // briefing state? fall back below
   await ev("__game.state = 'briefing'; true");
   await ev("window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' })); true"); await sleep(400);
+  await deployIfCrew();
   check("D03 starts as Jax without Rook", await ev("__game.char === 'jax' && !__game.crew.includes('rook')"), await ev("__game.crew.join(',')"));
   check("D03 has a crew terminal facing the floor", await ev("!!__game.world.crewTerm && !__game.world.solid(...__game.world.toTile(__game.world.crewTerm.fx, __game.world.crewTerm.fz), 0, 'walk')"), await ev("JSON.stringify({ r: __game.world.crewTerm?.r, c: __game.world.crewTerm?.c })"));
   // walk onto the card: it is picked up, but Rook stays asleep until the terminal
@@ -101,6 +104,7 @@ try {
   await ev("localStorage.removeItem('pb-crew'); true");
   await ev("__gfx.loadDistrict(4); true"); await sleep(300);
   await ev("__game.state = 'briefing'; window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter' })); true"); await sleep(400);
+  await deployIfCrew();
   const s5 = await ev("({ name: __game.world.level.name, char: __game.char, crew: __game.crew.join(','), saved: localStorage.getItem('pb-crew'), pods: (__game.world.pods || []).length, card: !!__game.world.card, locks: __game.world.terminals.length, sealed: __game.world.terminals.filter(t => t.sealed).length, toast: document.querySelector('.toast, #toast')?.textContent })");
   check("D05 is Portal Zero with no pods or card", s5.pods === 0 && !s5.card && s5.name.includes("PORTAL ZERO"), JSON.stringify(s5));
   check("D05 auto-selects Rook even if she was never unlocked", s5.char === "rook" && s5.crew.includes("rook") && !(s5.saved || "").includes("rook"));

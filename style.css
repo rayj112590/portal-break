@@ -309,8 +309,11 @@ kbd {
 
 /* ---------- crew select ---------- */
 .overlay.crew-overlay { background: rgba(3, 5, 12, 0.8); backdrop-filter: blur(4px); cursor: default; }
-.crew-screen { width: min(1080px, 96vw); max-height: 96vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
-  padding: 26px 30px; background: rgba(6, 10, 20, 0.9); border: 1px solid rgba(255,255,255,0.1); border-top: 3px solid var(--city); }
+.crew-screen { --pad: 26px; width: min(1080px, 96vw); max-height: 96vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+  padding: var(--pad) 30px; background: rgba(6, 10, 20, 0.9); border: 1px solid rgba(255,255,255,0.1); border-top: 3px solid var(--city); }
+/* on a short window the screen scrolls; without this the flex column squeezes the detail panel
+   and its skins list spills over the BACK / DEPLOY row */
+.crew-screen > * { flex-shrink: 0; }
 .crew-screen header h2 { margin: 0; font-size: clamp(26px, 3.4vw, 40px); letter-spacing: 3px; }
 .crew-screen header .eyebrow { margin-bottom: 6px; }
 .crew-sub { margin: 4px 0 0; font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 1px; }
@@ -363,7 +366,10 @@ kbd {
 .skin small { display: block; color: var(--muted); font-size: 9px; letter-spacing: 1px; }
 .cd-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
 .cd-actions .btn { padding: 9px 16px; font-size: 14px; }
-.crew-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+/* the squad slots + BACK / DEPLOY stay pinned to the bottom of the screen while the rest scrolls */
+.crew-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; position: sticky; z-index: 2;
+  bottom: calc(-1 * var(--pad)); margin-bottom: calc(-1 * var(--pad)); padding: 12px 0 var(--pad);
+  background: rgb(6, 10, 20); border-top: 1px solid rgba(255,255,255,0.08); }
 .squad-slots { display: flex; gap: 8px; flex: 1; min-width: 260px; }
 .slot { flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-family: var(--mono); font-size: 12px; letter-spacing: 1.5px;
   background: rgba(0,0,0,0.4); border: 1px dashed rgba(255,255,255,0.18); color: var(--muted); }
@@ -371,6 +377,20 @@ kbd {
 .slot kbd { color: var(--cc, var(--muted)); }
 .slot .lead { color: #ffc04a; margin-left: auto; font-size: 10px; }
 .crew-foot .btn { margin: 0; }
+/* short windows (720p and laptops): tighter spacing so the whole screen fits without scrolling */
+@media (max-height: 820px) {
+  .crew-screen { --pad: 16px; gap: 10px; }
+  .crew-screen header h2 { font-size: 30px; }
+  .crew-sub { margin-top: 2px; }
+  .crew-card { padding: 8px 12px; }
+  .crew-card .cc-name { font-size: 17px; }
+  .crew-detail { padding: 12px; gap: 16px; }
+  .cd-view { min-height: 260px; }
+  .cd-info { gap: 7px; }
+  .cd-bio { font-size: 15px; line-height: 1.35; }
+  .cd-ability p { font-size: 14px; }
+  .skin { padding: 4px 8px; }
+}
 @media (max-width: 860px) {
   .crew-body { grid-template-columns: 1fr; }
   .crew-roster { flex-direction: row; flex-wrap: wrap; }
