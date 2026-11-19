@@ -84,22 +84,40 @@ function buildWraith() {
 const BUILDERS = { drone: buildDrone, turret: () => buildTurret(), wraith: buildWraith, riftTurret: () => buildTurret(RIFT_COLOR) };
 
 // Blender models (assets/models/<type>.glb); same shape as the builders above.
+// Two kinds: the hand-built models (Eye/Glow neon materials, drone Ring, wraith Shell + Shard1..3) and the
+// Hyper3D Rodin models (art/rodin-work/<type>_split.blend): one textured material named Rodin<Type> whose
+// grey emissive map is tinted with the enemy colour, so the "eye" is that emissive colour and the attack
+// warning pulses every glow line. The Rodin drone spins Rotor1..4 instead of a ring.
 function fromGLB(type) {
   const inst = instance(type === "riftTurret" ? "turret" : type, { transparent: true });
   if (!inst) return null;
   const root = new THREE.Group();
   root.add(inst.root);
-  const eye = inst.byRole.Eye?.[0];
+  const rodin = inst.byRole.Lit?.find(m => m.emissiveMap && m.name.startsWith("Rodin"));
   if (type === "riftTurret") {
     // same Blender turret, recoloured crimson for the Breach
     for (const m of inst.byRole.Eye || []) m.color.copy(RIFT_COLOR).multiplyScalar(3);
     for (const m of inst.byRole.Glow || []) m.color.copy(RIFT_COLOR).multiplyScalar(2.2);
     for (const m of inst.byRole.Lit || []) m.color.multiply(new THREE.Color(1.15, 0.8, 0.9));
   }
-  const out = { root, head: inst.find("Head"), mats: inst.mats, eye, baseEye: eye?.color.clone(), flashMats: inst.byRole.Lit || [] };
-  if (type === "drone") { out.ring = inst.find("Ring"); out.ringAxis = "y"; }
-  if (type === "wraith") { out.shards = [1, 2, 3].map(i => inst.find(`Shard${i}`)); out.shell = inst.find("Shell"); }
-  if (!out.head || !eye || (type === "drone" && !out.ring) || (type === "wraith" && (!out.shell || out.shards.some(s => !s)))) return null;
+  let eye = inst.byRole.Eye?.[0], baseEye = eye?.color.clone();
+  const out = { root, head: inst.find("Head"), mats: inst.mats, flashMats: inst.byRole.Lit || [] };
+  if (rodin) {
+    eye = { color: rodin.emissive };
+    baseEye = COLORS[type].clone().multiplyScalar(1.4);   // big glow rings, not a small lens: keep it below bloom blow-out
+    rodin.emissiveIntensity = 1;
+    out.rodin = rodin;
+    out.baseColor = rodin.color.clone();
+    out.flashMats = [];              // the emissive is the glow tint; hits flash the base colour instead
+  }
+  Object.assign(out, { eye, baseEye });
+  if (type === "drone") {
+    out.ring = inst.find("Ring"); out.ringAxis = "y";
+    const rotors = [1, 2, 3, 4].map(i => inst.find(`Rotor${i}`));
+    if (rotors.every(Boolean)) out.rotors = rotors;
+  }
+  if (type === "wraith" && !rodin) { out.shards = [1, 2, 3].map(i => inst.find(`Shard${i}`)); out.shell = inst.find("Shell"); }
+  if (!out.head || !eye || (type === "drone" && !out.ring && !out.rotors) || (type === "wraith" && !rodin && (!out.shell || out.shards.some(s => !s)))) return null;
   return out;
 }
 const COLORS = { drone: DRONE_COLOR, turret: TURRET_COLOR, wraith: WRAITH_COLOR, riftTurret: RIFT_COLOR };
@@ -138,6 +156,9 @@ export class Enemy {
     this.lungeHit = false;
     this.hitFlash = 0;
     this.facing = Math.random() * Math.PI * 2;
+    // world-space aim of a turret's head (and of a hacked enemy); the head node turns by aim - facing
+    // because the whole model is already rotated by facing
+    this.aim = this.facing;
     this.bob = Math.random() * 10;
     this.ghost = -1;
 
@@ -202,12 +223,20 @@ export class Enemy {
     const m = this.model;
     m.root.position.set(this.pos.x, 0, this.pos.z);
     m.root.rotation.y = this.facing;
+    const aiming = this.stationary || this.hijackT > 0;
+    if (!aiming) this.aim = this.facing;
+    m.head.rotation.y = aiming ? this.aim - this.facing : 0;
     const flash = this.hitFlash;
     for (const fm of m.flashMats) fm.emissive?.setRGB(flash * 3, flash * 3, flash * 3);
     const tel = this.telegraph > 0 ? 1 + Math.sin(this.telegraph * 40) * 0.5 + 1 : 1;
     m.eye.color.copy(m.baseEye).multiplyScalar(tel);
     if (this.hijackT > 0) m.eye.color.setRGB(0.6, 2.8, 0.4);
-    if (this.type === "wraith" && flash === 0) m.shell.material.emissive.setRGB(0.31 + (this.state === "windup" ? 1.5 : 0), 0, 0.06);
+    if (m.rodin) {
+      if (this.type === "wraith" && this.state === "windup") m.eye.color.multiplyScalar(1.8);
+      m.rodin.color.copy(m.baseColor).multiplyScalar(1 + flash * 2.5);
+      if (flash > 0) m.eye.color.addScalar(flash * 2);
+    }
+    if (this.type === "wraith" && flash === 0 && m.shell) m.shell.material.emissive.setRGB(0.31 + (this.state === "windup" ? 1.5 : 0), 0, 0.06);
 
     // hp bar
     const showBar = active && this.hp < this.cfg.hp;
@@ -245,7 +274,8 @@ export class Enemy {
     const { world } = game;
     const h = this.model.head;
     h.position.y = 1.7 + Math.sin(this.bob * 2.2) * 0.12;
-    this.model.ring.rotation[this.model.ringAxis || "z"] += dt * 3;
+    if (this.model.rotors) this.model.rotors.forEach((r, i) => { r.rotation.y += dt * (i === 0 || i === 3 ? 24 : -24); });
+    else this.model.ring.rotation[this.model.ringAxis || "z"] += dt * 3;
     if (!engaged) { this.telegraph = 0; this.wander(dt, world, 1.5); return; }
 
     this.turnTo(Math.atan2(dx, dz), dt, 10);
@@ -277,39 +307,37 @@ export class Enemy {
     this.telegraph = 0;
     this.burst = 0;
     if (this.hijackT <= 0) { this.alert = 0; this.cooldown = 1.5; return; }
-    const head = this.model.head;
     let best = null, bd = this.cfg.range;
     for (const e of game.enemies) {
       if (e === this || !e.alive || e.phase !== this.phase || e.hijackT > 0) continue;
       const d = Math.hypot(e.pos.x - this.pos.x, e.pos.z - this.pos.z);
       if (d < bd && game.world.lineOfSight(this.pos.x, this.pos.z, e.pos.x, e.pos.z, this.phase)) { bd = d; best = e; }
     }
-    if (!best) { head.rotation.y += dt * 1.5; return; }
-    let d = Math.atan2(best.pos.x - this.pos.x, best.pos.z - this.pos.z) - head.rotation.y;
+    if (!best) { this.aim += dt * 1.5; return; }
+    let d = Math.atan2(best.pos.x - this.pos.x, best.pos.z - this.pos.z) - this.aim;
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
-    head.rotation.y += d * Math.min(1, dt * 8);
+    this.aim += d * Math.min(1, dt * 8);
     this.cooldown -= dt;
     if (this.cooldown <= 0 && Math.abs(d) < 0.3) {
-      const a = head.rotation.y, fx = Math.sin(a), fz = Math.cos(a);
+      const a = this.aim, fx = Math.sin(a), fz = Math.cos(a);
       game.allyFire(this, this.pos.x + fx * 0.9, this.pos.z + fz * 0.9, 1.15, fx, fz);
       this.cooldown = 0.28;
     }
   }
 
   updateTurret(dt, game, engaged, sees, dx, dz, dist) {
-    const head = this.model.head;
-    if (!engaged) { head.rotation.y += dt * 0.5; this.telegraph = 0; return; }
+    if (!engaged) { this.aim += dt * 0.5; this.telegraph = 0; return; }
     const want = Math.atan2(dx, dz);
-    let d = want - head.rotation.y;
+    let d = want - this.aim;
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
-    head.rotation.y += d * Math.min(1, dt * 5);
+    this.aim += d * Math.min(1, dt * 5);
 
     if (this.burst > 0) {
       this.burstT -= dt;
       if (this.burstT <= 0) {
-        const a = head.rotation.y;
+        const a = this.aim;
         const fx = Math.sin(a), fz = Math.cos(a);
         game.enemyFire(this, this.pos.x + fx * 0.9, this.pos.z + fz * 0.9, 1.15, fx, fz);
         this.burst--;
@@ -330,7 +358,8 @@ export class Enemy {
     const { world, player } = game;
     const m = this.model;
     m.head.position.y = 1.2 + Math.sin(this.bob * 3) * 0.1;
-    m.shards.forEach((s, i) => {
+    if (m.rodin) m.head.rotation.z = Math.sin(this.bob * 1.7) * 0.07;   // the crystal sways as it floats
+    m.shards?.forEach((s, i) => {
       const a = this.bob * 2.5 + (i * Math.PI * 2) / 3;
       s.position.set(Math.cos(a) * 0.7, Math.sin(this.bob * 4 + i) * 0.25, Math.sin(a) * 0.7);
       s.rotation.x += dt * 4;
@@ -390,17 +419,18 @@ export class Enemy {
 export function separate(enemies) {
   for (let i = 0; i < enemies.length; i++) {
     const a = enemies[i];
-    if (!a.alive || a.stationary) continue;
+    if (!a.alive || a.stationary || a.held || a.heavy) continue;   // turrets and the Warden don't get pushed
     for (let j = i + 1; j < enemies.length; j++) {
       const b = enemies[j];
-      if (!b.alive || b.phase !== a.phase) continue;
+      if (!b.alive || b.held || b.phase !== a.phase) continue;
       const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z;
       const d = Math.hypot(dx, dz), min = a.radius + b.radius;
       if (d > 0 && d < min) {
-        const push = (min - d) / 2;
+        const fixed = b.stationary || b.heavy;
+        const push = fixed ? min - d : (min - d) / 2;
         const ux = dx / d, uz = dz / d;
         a.pos.x -= ux * push; a.pos.z -= uz * push;
-        if (!b.stationary) { b.pos.x += ux * push; b.pos.z += uz * push; }
+        if (!fixed) { b.pos.x += ux * push; b.pos.z += uz * push; }
       }
     }
   }

@@ -4,7 +4,7 @@
 // ============================================================
 import * as THREE from "three";
 import { PLAYER, PALETTE, CITY, BREACH } from "./config.js";
-import { instance } from "./models.js";
+import { instance, hasModel } from "./models.js";
 import { clone as cloneWithSkeleton } from "three/addons/utils/SkeletonUtils.js";
 
 // X-ray silhouette: drawn only where the player is hidden behind the world.
@@ -28,6 +28,7 @@ function stampStencil(root) {
   });
 }
 
+const WHITE = new THREE.Color(1, 1, 1);
 function part(parent, geo, mat, x, y, z) {
   const m = new THREE.Mesh(geo, mat);
   m.position.set(x, y, z);
@@ -116,9 +117,11 @@ function rotator(bone) {
   };
 }
 
-// Blender model (assets/models/player.glb), with x-ray ghosts added per mesh.
-function buildPlayerFromGLB() {
-  const inst = instance("player");
+// Blender model (assets/models/<name>.glb), with x-ray ghosts added per mesh.
+// "player" is the hand-built Jax; "jax" / "rook" / "crane" are the Rodin crew models, rigged with
+// the same skeleton (art/rodin-work/*_rig.blend).
+function buildPlayerFromGLB(name = "player") {
+  const inst = instance(name);
   if (!inst) return null;
   const meshes = [];
   inst.root.traverse(o => { if (o.isMesh) meshes.push(o); });
@@ -136,7 +139,15 @@ function buildPlayerFromGLB() {
   const root = new THREE.Group();
   root.add(inst.root);
   const gun = inst.find("Gun"), muzzle = inst.find("Muzzle");
-  const trimMat = inst.byRole.Trim?.[0] || new THREE.MeshBasicMaterial();
+  let trimMat = inst.byRole.Trim?.[0], bodyMat = null;
+  if (!trimMat) {
+    // Rodin models have one textured material. Its emissive map is grey, so tinting the emissive
+    // colour recolours the glow lines per crew member / phase (and flashes them white on a hit).
+    // Its base colour is the armour tint a skin sets (Player.setSkin).
+    const lit = inst.byRole.Lit?.find(m => m.emissiveMap);
+    if (lit) { lit.emissiveIntensity = 1.5; trimMat = { color: lit.emissive }; bodyMat = lit; }
+  }
+  trimMat ||= new THREE.MeshBasicMaterial();
   const coreMat = inst.byRole.Core?.[0] || new THREE.MeshBasicMaterial();
   if (!gun || !muzzle) return null;
 
@@ -156,7 +167,7 @@ function buildPlayerFromGLB() {
     const pq = new THREE.Quaternion(); gun.parent.getWorldQuaternion(pq);
     const back = new THREE.Vector3(0, 0, -1).applyQuaternion(pq.invert());
     return {
-      root, gun, muzzle, trimMat, coreMat, skinned: true,
+      root, gun, muzzle, trimMat, coreMat, bodyMat, skinned: true,
       pose(p) {
         const hipYaw = p.hipYaw || 0, twist = p.twist || 0, roll = p.roll || 0;
         // hips turn toward the walking direction (+ stride twist, + hip drop) ...
@@ -183,12 +194,16 @@ function buildPlayerFromGLB() {
 
 const _v = new THREE.Vector3();
 
+// Jax's run. A crew member can bring their own (crew.js `gait`, all keys): cadence scales the
+// step rate, swing = thigh swing (rad), knee = heel kick, twist / roll = hip turn and drop per
+// step, lean = forward lean, bob = how far the body rises on each push-off.
+export const DEFAULT_GAIT = { cadence: 1, swing: 0.78, knee: 1.45, twist: 0.1, roll: 0.05, lean: 0.12, bob: 0.06 };
+
 export class Player {
   constructor(scene) {
-    this.model = buildPlayerFromGLB() || buildPlayerModel();
-    stampStencil(this.model.root);
-    scene.add(this.model.root);
     this.scene = scene;
+    this.bodies = {};
+    this.setBody("jax");
     this.afterimages = [];
     this.light = new THREE.PointLight(0x7fdcff, 14, 12, 1.2); // kept well above the model: too close produced NaN pixels on Intel GPUs
     scene.add(this.light);
@@ -210,9 +225,43 @@ export class Player {
     this.invuln = 0;
     this.walk = 0;
     this.alive = true;
+    this.asleep = false; // District 01: hidden inside Pod 01 until it opens
     this.hitFlash = 0;
     this.lock = null; // auto-aim target position (Vector3) or null
     this.tint ??= null; // crew colour (Rook = acid green); null = the phase colour
+    this.speedMul ??= 1; // per crew member (Crane is slower), and slower again while carrying
+    this.bulk ??= 1;     // model scale per crew member
+    this.gait ??= null;  // per crew member's run (null = DEFAULT_GAIT)
+    this.carrying = false;
+    this.weapon = null;  // pickup weapon { id, ammo } from a supply crate, or null = the rifle
+  }
+
+  // Swap to a crew member's own model (built once, then kept). `model` is a skin's own model
+  // (crew.js modelOf); if it isn't loaded (e.g. an event skin while the event is off) they wear
+  // their usual one. Anyone without a model uses Jax's hand-built one, then the box stand-in.
+  setBody(id, model = id) {
+    const name = hasModel(model) ? model : hasModel(id) ? id : "player";
+    if (this.bodyName === name && this.model) return;
+    let m = this.bodies[name];
+    if (!m) {
+      m = buildPlayerFromGLB(name) || (name !== "player" && this.bodies.player) || buildPlayerFromGLB("player") || buildPlayerModel();
+      stampStencil(m.root);
+      this.bodies[name] = m;
+    }
+    if (this.model === m) { this.bodyName = name; return; }
+    const visible = this.model ? this.model.root.visible : true;
+    if (this.model) this.scene.remove(this.model.root);
+    this.model = m;
+    this.bodyName = name;
+    m.root.visible = visible;
+    this.scene.add(m.root);
+  }
+
+  // Armour tint of the current body (a skin's `body` colour, null = the texture as it is).
+  // Only the Rodin crew models have a tintable armour material.
+  setSkin(body) {
+    const mat = this.model?.bodyMat;
+    if (mat) mat.color.copy(body || WHITE);
   }
 
   get radius() { return PLAYER.radius; }
@@ -265,8 +314,9 @@ export class Player {
     } else {
       // snappy acceleration
       const k = 1 - Math.exp(-dt * 18);
-      this.vel.x += (mx * PLAYER.speed - this.vel.x) * k;
-      this.vel.z += (mz * PLAYER.speed - this.vel.z) * k;
+      const top = PLAYER.speed * this.speedMul;
+      this.vel.x += (mx * top - this.vel.x) * k;
+      this.vel.z += (mz * top - this.vel.z) * k;
       vx = this.vel.x; vz = this.vel.z;
     }
     world.move(this.pos, vx * dt, vz * dt, PLAYER.radius, phase, "walk");
@@ -282,10 +332,13 @@ export class Player {
     // animate
     const m = this.model;
     const speed = Math.hypot(vx, vz);
-    this.walk += dt * speed * 1.55;
+    // stride cadence sized so a planted foot roughly keeps pace with the ground instead of skating
+    // (a bigger body covers more ground per step); a crew member's own gait tunes the rest
+    const g = this.gait || DEFAULT_GAIT;
+    this.walk += dt * speed * 2.05 * g.cadence / (this.bulk || 1);
     this.idleT = (this.idleT || 0) + dt;
-    const move = Math.min(1, speed / PLAYER.speed);
-    const swing = move * 0.62;
+    const move = Math.min(1, speed / (PLAYER.speed * this.speedMul));
+    const swing = move * g.swing;
     // Where is he walking relative to where he's aiming? Hips point that way (within limits),
     // the upper body keeps aiming. Walking mostly backwards = backpedal: hips face forward, stride reverses.
     let rel = Math.atan2(vx, vz) - this.facing;
@@ -298,21 +351,26 @@ export class Player {
     const dir = backpedal ? -1 : 1;
     const s = Math.sin(this.walk), c = Math.cos(this.walk);
     const legL = s * swing * dir, legR = -s * swing * dir;
+    // knee: starts bending at push-off, tucks the heel up behind while that leg swings through
+    // (peaks just before it passes under the hips), and is nearly straight again when it plants
+    const kn = Math.cos(this.walk + 0.6);
     m.pose({
       legL, legR,
-      kneeL: Math.max(0, c * dir) * swing * 1.25 + 0.05,   // knee bends as that leg swings through
-      kneeR: Math.max(0, -c * dir) * swing * 1.25 + 0.05,
+      kneeL: Math.pow(Math.max(0, kn), 1.2) * move * g.knee + 0.06,
+      kneeR: Math.pow(Math.max(0, -kn), 1.2) * move * g.knee + 0.06,
       hipYaw: this.legYaw,
-      twist: s * 0.1 * move,                                // hips twist with the stride, shoulders counter
-      roll: s * 0.05 * move + Math.sin(this.idleT * 0.7) * 0.025 * (1 - move),   // hip drop / idle weight shift
+      twist: s * g.twist * move,                            // hips twist with the stride, shoulders counter
+      roll: s * g.roll * move + Math.sin(this.idleT * 0.7) * 0.025 * (1 - move),   // hip drop / idle weight shift
       nod: -Math.abs(s) * 0.06 * move,
-      lean: this.dashT > 0 ? 0.3 : move * 0.09 * (backpedal ? -0.5 : 1),
-      bob: Math.abs(s) * 0.035 * move,
+      lean: this.dashT > 0 ? 0.3 : move * g.lean * (backpedal ? -0.5 : 1),
+      bob: Math.abs(s) * g.bob * move,                      // up on each push-off, down as the foot lands
       breath: Math.sin(this.idleT * 2.1) * 0.02 * (1 - move),
       recoil: Math.max(0, this.fireCd * 2 - 0.1),
     });
     m.root.position.copy(this.pos);
     m.root.rotation.y = this.facing;
+    m.root.scale.setScalar(this.bulk);       // Crane is built bigger
+    m.gun.visible = !this.carrying;          // both hands on whatever he's lifting
 
     const col = phase === CITY ? PALETTE[CITY].accent : PALETTE[BREACH].accent;
     const tc = this.tint || col;
@@ -320,7 +378,7 @@ export class Player {
     if (this.hitFlash > 0) m.trimMat.color.setRGB(4, 4, 4);
     else m.trimMat.color.copy(tc).multiplyScalar(1.15);
     ghostMat.color.copy(col);
-    m.root.visible = true; // no hit-blink (photosensitivity)
+    m.root.visible = !this.asleep; // no hit-blink (photosensitivity)
 
     this.light.position.set(this.pos.x, 4.5, this.pos.z + 1.2);
     this.light.color.copy(col);
@@ -333,10 +391,14 @@ export class Player {
   // "Dead in the system": a frozen wireframe copy of Jax, left behind like a stale data trace.
   spawnAfterimage(color) {
     const ghost = cloneWithSkeleton(this.model.root);
-    // soft translucent silhouette (a dense wireframe reads as a blinding solid blob under bloom)
-    const mat = new THREE.MeshBasicMaterial({
-      color: color.clone().multiplyScalar(0.7), transparent: true, opacity: 0.22, depthWrite: false,
-    });
+    // soft translucent silhouette (a dense wireframe reads as a blinding solid blob under bloom).
+    // The materials are pooled and never disposed: disposing the last one made three.js delete its
+    // shader, so every dash / swap / phase shift more than half a second after the last one
+    // compiled it again (a hitch each time on Windows).
+    this.ghostPool ??= [];
+    const mat = this.ghostPool.pop() || new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
+    mat.color.copy(color).multiplyScalar(0.7);
+    mat.opacity = 0.22;
     ghost.traverse(o => {
       if (!o.isMesh) return;
       if (o.material === ghostMat) { o.visible = false; return; }
@@ -351,7 +413,7 @@ export class Player {
       const a = this.afterimages[i];
       a.t += dt;
       const k = a.t / 0.55;
-      if (k >= 1) { this.scene.remove(a.obj); a.mat.dispose(); this.afterimages.splice(i, 1); continue; }
+      if (k >= 1) { this.scene.remove(a.obj); this.ghostPool.push(a.mat); this.afterimages.splice(i, 1); continue; }
       a.mat.opacity = 0.22 * (1 - k);
       a.obj.position.y = k * 0.25;
     }

@@ -15,14 +15,30 @@
 //   h  coolant vent — blasts in waves in the CITY, dormant in the BREACH (District 04+)
 //   1 2 3  security gate — solid in BOTH worlds until that many locks are hacked (District 03+)
 //   o  hypersleep pod (scenery, like a crate)   O  crew pod, numbered by the level's `pods` list
+//      (District 01's hypersleep chamber; Pod 01 is Jax's own, he wakes up in it)
 //   g  security glass — solid in both worlds; a lock behind it needs Rook's remote hack
-//   k  crew ID card (opens the pod of the level's `card` crew member) (District 05+)
+//   k  crew ID card for the level's `card` crew member (District 03: Rook, District 04: Crane).
+//      Take it to the crew terminal to wake them (no terminal in the level = wakes on pickup)
+//   K  crew terminal: a console set into the wall (like "U", floor in front, south side
+//      preferred). Stand at it with the ID card and that sleeper's pod thaws.
+//   U  revive chamber: a glass tube set into the wall (put it in a wall tile with floor in
+//      front, south side preferred so the camera sees it). One per district.
+//   +  revive cell: carried between districts (max 3). At a revive chamber it brings back
+//      a crew member who went down.
+//   m  heavy crate: cover like "c", but Crane can lift and throw it (it smashes, may drop health)
+//   $  supply crate (gold straps): Crane throws it and it breaks open with the next item of the
+//      level's `loot` list (map order: left to right, top to bottom)
+//  Optional level fields: `needs: "rook"` = this district can't be finished without that
+//  crew member, so they're brought along and selected when the district starts.
+//  `loot: ["scatter", "gift"]` = what the supply crates hold: scatter / rail (pickup weapons),
+//  gift, cell (revive cell), hp, energy. Missing entries = a random gift, health or energy.
 // ============================================================
 
 export const LEVELS = [
   {
     id: "d01",
     name: "DISTRICT 01 // NEON UNDERCITY",
+    pods: ["03", "07", "11", "01"],
     briefing: [
       "The emergency portal is sealed behind four security locks.",
       "Two terminals live in the city. Two rift nodes only exist in the Breach.",
@@ -38,7 +54,7 @@ export const LEVELS = [
       "##......##..B...................BB..........##",
       "##..........B.........###.......##..........##",
       "##...d............w...###.......##...####...##",
-      "##............c.............c...##...####...##",
+      "##.+..........c.............c...##...####...##",
       "##........L...................L.##...####...##",
       "##################~~~~~bbbb~~~~~##..........##",
       "##################~~~~~bbbb~~~~~##.c..w.....##",
@@ -46,13 +62,13 @@ export const LEVELS = [
       "##################~~~~~bbbb~~~~~##......d...##",
       "##################L............L##..###.....##",
       "##################.c..........c.##..###....L##",
-      "##################.......d......##..........##",
+      "########U#########.......d......##..........##",
       "##L............L##...##....##...##.........t##",
-      "##.....d..cc....##...##....##...##......##..##",
-      "##...##.........##......w.......##......##..##",
-      "##...##.........AA......AA......##..........##",
-      "##.......d...c..AA......AA......BB....w.....##",
-      "##..............AA............w.BB..........##",
+      "##.o.o.o.o.o.o..##...##....##...##......##..##",
+      "##..............##......w.......##......##..##",
+      "##...O...O...O..AA......AA......##..........##",
+      "##........d.....AA......AA......BB....w.....##",
+      "##..O...........AA............w.BB..........##",
       "##..P.....###...##...##....##...BB..c.......##",
       "##........###...##...##....##...##......R...##",
       "##..c........T..##.w............##........w.##",
@@ -90,9 +106,9 @@ export const LEVELS = [
       "##~~~bb~~~~~~~~L.........~~~~~~~~~~~~~bb~~~~##",
       "##~~~bb~~~~~~~~.w....d.c.~~~~~~~~~~~~~bb~~~~##",
       "##~~~bb~~~~~~~~...##.....~~~~~~~~~~~~~bb~~~~##",
-      "##~~~bb~~~~~~~~...##.....bbb..vvvvL.........##",
+      "##~~~bb~~~~~~~~...U#.....bbb..vvvvL.........##",
       "##~~~bb~~~~~~~~......BBB.bbb..vvvv..........##",
-      "##~~~bb~~~~~~~~.c......r.~~~~~~~~~...d....c.##",
+      "##~~~bb~~~~~~~~.c......r.~~~~~~~~~...d....c+##",
       "##~~~bb~~~~~~~~.........L~~~~~~~~~..........##",
       "##~~~bb~~~~~~~~~~~~~vv~~~~~~~~~~~~....###...##",
       "##~~~bb~~~~~~~~~~~~~vv~~~~~~~~~~~~....###...##",
@@ -120,11 +136,12 @@ export const LEVELS = [
       "NEW: orange laser gates block BOTH worlds. Each lock you crack drops the next gate: 1, then 2, then 3.",
       "One terminal is sealed inside a holo-barrier box. Phase in through the wall, then shift back to hack it.",
     ],
-    legendExtra: "<i class='sw gate'></i> NEW: security gates open as you crack locks (gate 1 after 1 lock, gate 2 after 2...)",
+    card: "rook",
+    legendExtra: "<i class='sw gate'></i> NEW: security gates open as you crack locks (gate 1 after 1 lock, gate 2 after 2...) &nbsp;·&nbsp; <i class='sw card'></i> a crew ID card is somewhere in here: take it to the crew terminal",
     map: [
       "##############################################",
-      "##############################################",
-      "##L......L~~~~~......L##L...A...A..........L##",
+      "##################################K#U#########",
+      "##L......L~~~~~......L##L...A...A........k.L##",
       "##..X.....~~~~~.......##....A.T.A.........r.##",
       "##........vvvvv..d.c..##....A...A........c..##",
       "##.....w..vvvvv.......33....A...A.....d.....##",
@@ -148,39 +165,40 @@ export const LEVELS = [
       "##....d............c..11..##..~~~~..........##",
       "##.............c......##..##..bbbb..........##",
       "##..P............w....##......bbbb....w.....##",
-      "##.........c..........##....t.~~~~.......c..##",
+      "##.........c..........##....t.~~~~.......c+.##",
       "##L.................L.##L.....~~~~.........L##",
       "##############################################",
       "##############################################",
     ],
     storyAfter: [
-      { speaker: "DR. LENA VOSS", text: "Security's down. The admin logs say the hypersleep bay is below us. Dozens of pods, all still running." },
-      { speaker: "DR. LENA VOSS", text: "Somebody's still alive in there, Calder. The pods take crew ID cards. Find one and we can wake them." },
-      { speaker: "DR. LENA VOSS", text: "First we go through the coolant works that keeps them frozen. The vents fire in waves. In the Breach they're dead, but the Breach is eating you too." },
+      { speaker: "DR. LENA VOSS", text: "Security's down. Next is the coolant works, the plant that keeps every pod on this station frozen. Including the one you climbed out of." },
+      { speaker: "DR. LENA VOSS", text: "The vents fire in waves. In the Breach they're dead, but the Breach is eating you too." },
     ],
   },
   {
     id: "d04",
     name: "DISTRICT 04 // COOLANT WORKS",
     briefing: [
-      "The plant that keeps the hypersleep bay frozen. Four locks: two terminals, two rift nodes.",
+      "The plant that keeps the station's hypersleep pods frozen. Four locks: two terminals, two rift nodes.",
       "NEW: coolant vents blast in waves in the CITY. Watch the grates glow, then cross in the gap, or DASH through.",
       "In the BREACH the vents are dead, but your phase energy drains. Shift across, then shift back before you run dry.",
     ],
-    legendExtra: "<i class='sw vent'></i> NEW: coolant vents fire in the CITY only (glowing grate = about to blast)",
+    card: "crane",
+    loot: ["scatter", "gift"],
+    legendExtra: "<i class='sw vent'></i> NEW: coolant vents fire in the CITY only (glowing grate = about to blast) &nbsp;·&nbsp; <i class='sw card'></i> a crew ID card is somewhere in here: take it to the crew terminal",
     map: [
       "##############################################",
       "##############################################",
-      "##L......##L..######.....#####.L~~~~.hh....L##",
+      "##L......##L..######m.k.$#####.L~~~~.hh....L##",
       "##.....c.##...######...d.#####..bbbb.hh.....##",
       "##..T....##...######.....#####..bbbb.hh..R..##",
-      "##.....d.##...######.....#####..~~~~.hh...r.##",
-      "##.......##...######..........d.~~~~.hh.....##",
+      "##.....d.##...######....m#####..~~~~.hh...r.##",
+      "##.......##...##U##K..........d.~~~~.hh.....##",
       "##.c............................vvvv.hh.....##",
       "##...........L..........L.......vvvv.hh..X..##",
       "##...##......hhhhhhhhhhhhhhhhhhh~~~~.hht....##",
       "##...##......hhhhhhhthhhhhhhhhhhhh..........##",
-      "##...........hhh.chhhhhhhhhhh..hhh.....##...##",
+      "##...........hhh+chhhhhhhhhhh..hhh.....##...##",
       "##......c....hhh..hhhhhhrhhhh.chhh.....##...##",
       "##L..........hhhhhhhh...hhhhhhhhhh.......w..##",
       "##....w......hhhhhhhh.R.hhhhhhhhhh.........L##",
@@ -191,9 +209,9 @@ export const LEVELS = [
       "##...........hwhhh.chhhhhhhhhhhhhh..........##",
       "##.....##....hhhhhhhhhhhhhhhhhhhhh......d..L##",
       "##.....##...............L.........L.AAAAAAA.##",
-      "##...c...d.....####...........hhhhh.A.....A.##",
+      "##...c...d..$..####...........hhhhh.A.....A.##",
       "##.........c...####.......####hhhhh.A.....A.##",
-      "##.......##....####.hhhhhh####...t..A.....A.##",
+      "##.......##..m.####.hhhhhh####...t..A.....A.##",
       "##..P....##....####.hhhhhh####......A..T..A.##",
       "##......c...w..####.hhwhhh####......A.....A.##",
       "##L..........L.####.hhhhhh####.....LA.....A.##",
@@ -201,41 +219,45 @@ export const LEVELS = [
       "##############################################",
     ],
     storyAfter: [
-      { speaker: "DR. LENA VOSS", text: "Coolant's stable. The hypersleep bay is right below us, Calder. I'm reading one heartbeat. Faint, but real." },
-      { speaker: "UNKNOWN TRANSMISSION", text: "Personnel record found: crew ID card, last scanned in the hypersleep bay. Pod 07 is waiting for it." },
+      { speaker: "DR. LENA VOSS", text: "Coolant's stable. Portal Zero is just ahead, Calder. The last working portal on this station, and our way out." },
+      { speaker: "UNKNOWN TRANSMISSION", text: "Portal Zero is sealed, Calder. Whatever opens it won't be you." },
     ],
   },
   {
     id: "d05",
-    name: "DISTRICT 05 // HYPERSLEEP BAY",
-    pods: ["03", "07", "11"],
-    thumbFocus: [14, 22],
-    card: "rook",
+    name: "DISTRICT 05 // PORTAL ZERO",
+    needs: "rook",
+    thumbFocus: [6, 9],
+    // Boss stage: all 3 locks open the portal room (gate 3), where the Warden waits in front of the
+    // portal. The exit only powers up once he's down. at = his spawn [row, col]; arena = the room he
+    // stays in [row0, col0, row1, col1]; checkpoint = where you respawn if the whole crew goes down.
+    boss: { type: "warden", at: [4, 23], arena: [2, 12, 8, 34], checkpoint: [10, 31.5] },
     briefing: [
-      "Rows of sleepers, most of them long gone. One heartbeat: Pod 07.",
-      "NEW: find the crew ID card in the records office and bring it to Pod 07. Whoever wakes up joins you. TAB swaps between crew.",
-      "One lock sits in a sealed glass vault. Not even the Breach gets you in there. You'll need a hacker.",
+      "The last working portal on the station. Three locks power the portal room.",
+      "One lock sits in a sealed glass vault. Not even the Breach gets you in there: Iris Rook's REMOTE HACK reaches through the glass.",
+      "Something big is guarding the portal. Station security calls it the WARDEN.",
     ],
-    legendExtra: "<i class='sw card'></i> NEW: crew ID card &nbsp;·&nbsp; <i class='sw glass2'></i> sealed glass vault (remote hack only)",
+    loot: ["rail", "cell"],
+    legendExtra: "<i class='sw glass2'></i> sealed glass vault (remote hack only) &nbsp; <i class='sw boss'></i> THE WARDEN: phase out to hide, hack him, throw crates at him",
     map: [
       "##############################################",
       "##############################################",
-      "##L.......L#L.........##..........L#L......L##",
-      "##.ggggggg.#....R..r..##.....X.....#.cc...d.##",
-      "##.g.....g.#..............w........#.cc..k..##",
-      "##.g..T..g.#~~~~~~~~~~~~~~~~~~~bb~~#........##",
-      "##.g.....g.#~~~~~~~~~~~~~~~~~~~bb~~#....t...##",
-      "##.ggggggg.#......w........d.......#........##",
-      "##.........#.......................#........##",
-      "##.........####################22######11#####",
+      "##L...+...L#L..........X..........L#L......L##",
+      "##.ggggggg.#...m.................m.#.c$...d.##",
+      "##.g.....g.#......#.........#......#.mc...R.##",
+      "##.g..T..g.#.AA.................AA.#........##",
+      "##.g.....g.#........m.....m........#....t...##",
+      "##.ggggggg.#....c.............c....#.....r..##",
+      "##.........#.m...................m.#........##",
+      "##.........#############U######33######11#####",
       "##L........#L....................L#........L##",
-      "##.........#.....O....O....O......#.........##",
+      "##.........#......................#.........##",
       "##....d....#....................t.#.........##",
-      "##...c.....#......................#.........##",
-      "##.........#.o.o.o.o.....o.o.o.o..#.....w...##",
+      "##...c.....#......................#........+##",
+      "##.........#...m.............m....#.....w...##",
       "##..........................................##",
       "##......................d...................##",
-      "##..w......#.o.o.o.o.....o.o.o.o..#....c....##",
+      "##..w......#.......m.....c........#....c....##",
       "##.........#......................#.........##",
       "##L........#L..t.................L#........L##",
       "##.........##########....##########.........##",
@@ -244,14 +266,14 @@ export const LEVELS = [
       "##....T.....##................##............##",
       "##.c....dc..................w...............##",
       "##.......c............P............c........##",
-      "##.......c......c.....................d.....##",
+      "##.......c......$.....................d.....##",
       "##L..........L..................L..........L##",
       "##############################################",
       "##############################################",
     ],
     storyAfter: [
-      { speaker: "IRIS ROOK", text: "Three pods in that bay had crew IDs on them, Calder. I got one name. Somebody pulled the other two cards and scattered them." },
-      { speaker: "DR. LENA VOSS", text: "Then we find them. Every card you bring back is another pair of hands. Pod 03 is reading something... bright." },
+      { speaker: "IRIS ROOK", text: "There's one pod in that chamber nobody's opened, Calder. Pod 03. Its card was pulled, and whoever took it went through this portal." },
+      { speaker: "DR. LENA VOSS", text: "Then we follow it. Every card you bring back is another pair of hands. Pod 03 is reading something... bright." },
       { speaker: "NARRATOR", text: "To be continued in the next build." },
     ],
   },

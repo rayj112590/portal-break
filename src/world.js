@@ -20,6 +20,7 @@ const _p = new THREE.Vector3();
 const _c = new THREE.Color();
 const _c2 = new THREE.Color();
 const VENT = { period: 2.6, on: 0.9, warn: 0.6 }; // seconds
+export const PROP_Y = 0.5; // a throwable crate's centre height when it sits on the floor
 
 // Tall soft light column that marks an objective above the rooftops.
 let beamTex = null;
@@ -61,7 +62,7 @@ export class World {
     this.time = 0;
     this.lastBlend = -1;
 
-    this.spawns = { player: null, enemies: [], terminals: [], exit: null, lamps: [] };
+    this.spawns = { player: null, enemies: [], terminals: [], exit: null, lamps: [], cells: [] };
     this.locksDone = 0; // security gates 1/2/3 stay shut until this many locks are hacked
     this.parseEntities();
     this.buildEnvironments(renderer);
@@ -82,6 +83,10 @@ export class World {
     this.buildPods();
     this.buildVault();
     this.buildCard();
+    this.buildCrewTerminal();
+    this.buildChambers();
+    this.buildCells();
+    this.buildProps();
     this.computeLockTiers();
   }
 
@@ -106,6 +111,9 @@ export class World {
       case "1": case "2": case "3": return Number(ch) > this.locksDone;
       case "o": case "O": return mode !== "fly";   // hypersleep pods
       case "g": return true;                         // security glass: sealed in both worlds
+      case "U": return true;                         // revive chamber: part of the wall
+      case "K": return true;                         // crew terminal: part of the wall
+      case "m": case "$": return mode !== "fly";     // throwable crates: cover until Crane lifts one
       default: return false;
     }
   }
@@ -201,13 +209,14 @@ export class World {
         else if (ch === "T" || ch === "R") this.spawns.terminals.push({ r, c, ...p, phase: ch === "T" ? CITY : BREACH });
         else if (ch === "X") this.spawns.exit = p;
         else if (ch === "L") this.spawns.lamps.push(p);
+        else if (ch === "+") this.spawns.cells.push({ r, c, ...p });
       }
     }
   }
 
   isFloorish(r, c) {
     const ch = this.ch(r, c);
-    return !"#~bv".includes(ch);
+    return !"#~bvU".includes(ch);
   }
 
   // ---------- environment maps (wet reflections) ----------
@@ -761,8 +770,19 @@ export class World {
       t.beam.visible = true;
     }
     this.locksDone = 0;
-    for (const gt of this.gates || []) { gt.open = false; gt.fade = 1; gt.group.visible = true; }
-    if (this.card) { this.card.taken = false; this.card.group.visible = true; }
+    for (const gt of this.gates || []) { gt.open = false; gt.fade = 1; gt.hidden = false; showExceptLights(gt.group, true); }
+    if (this.card) { this.card.taken = false; showExceptLights(this.card.group, true); this.card.light.intensity = 6; }
+    for (const cell of this.cells || []) { cell.taken = false; cell.group.visible = true; }
+    for (const ch of this.chambers || []) { ch.state = "idle"; ch.progress = 0; ch.figureMat.opacity = 0; }
+    if (this.crewTerm) { this.crewTerm.state = "locked"; this.crewTerm.progress = 0; }
+    for (const p of this.props || []) {
+      this.grid[p.r][p.c] = p.ch;
+      p.state = "idle";
+      p.group.visible = true;
+      p.group.position.set(p.x, PROP_Y, p.z);
+      p.group.rotation.set(0, p.rotY, 0);
+      if (p.halo) p.halo.visible = true;
+    }
     if (this.exit) {
       this.exit.open = false;
       this.exitRingMat.color.setRGB(1.5, 0.2, 0.25);
@@ -914,7 +934,7 @@ export class World {
     this.ventBursts = bursts;
   }
 
-  // ---------- hypersleep pods (District 05) ----------
+  // ---------- hypersleep pods (District 01's chamber) ----------
   // "o" = a sleeper pod (scenery), "O" = a crew pod, numbered from level.pods in reading order.
   buildPods() {
     const deco = [], crew = [];
@@ -973,7 +993,7 @@ export class World {
     return { ...p, label, group: g, lid, sleeper, stripMat, light, label3, bedMat, state: "locked", open: 0 };
   }
 
-  // locked (red) / ready = you carry its card (amber, pulsing) / awake = empty, lid up (green)
+  // locked (red) / sleeping = Jax's own pod before he wakes (amber, pulsing) / awake = empty, lid up (green)
   setPodState(pod, state) { pod.state = state; }
 
   updatePods(dt) {
@@ -986,11 +1006,11 @@ export class World {
       p.bedMat.opacity = Math.max(0, p.open - 0.3) * 0.8;
       const pulse = 0.6 + Math.sin(this.time * 6) * 0.4;
       if (p.state === "awake") { p.stripMat.color.setRGB(0.3, 2.2, 0.9); p.light.color.setRGB(0.4, 1, 0.6); p.light.intensity = 6; }
-      else if (p.state === "ready") { p.stripMat.color.setRGB(2.4 * pulse, 1.3 * pulse, 0.2); p.light.color.setRGB(1, 0.6, 0.15); p.light.intensity = 4 + pulse * 6; }
+      else if (p.state === "sleeping") { p.stripMat.color.setRGB(2.4 * pulse, 1.3 * pulse, 0.2); p.light.color.setRGB(1, 0.6, 0.15); p.light.intensity = 4 + pulse * 6; }
       else { p.stripMat.color.setRGB(1.3, 0.15, 0.2); p.light.color.setRGB(1, 0.2, 0.25); p.light.intensity = 3.5; }
       p.label3.position.y = 2.6 + Math.sin(this.time * 2 + p.c) * 0.08;
     }
-    if (this.card?.group.visible) {
+    if (this.card && !this.card.taken) {
       this.card.mesh.rotation.y += dt * 2.2;
       this.card.mesh.position.y = 1.1 + Math.sin(this.time * 3) * 0.12;
     }
@@ -1030,10 +1050,261 @@ export class World {
     const beam = makeBeam(new THREE.Color(1.0, 0.75, 0.3));
     g.add(mesh, halo, light, beam);
     this.group.add(g);
-    this.card = { ...spot, group: g, mesh, crew: this.level.card, taken: false };
+    this.card = { ...spot, group: g, mesh, light, crew: this.level.card, taken: false };
   }
 
-  takeCard() { this.card.taken = true; this.card.group.visible = false; }
+  takeCard() { this.card.taken = true; showExceptLights(this.card.group, false); this.card.light.intensity = 0; }
+
+  // ---------- crew terminal ("K"): a console set into a wall ----------
+  // Bring the district's crew ID card here (stand on the ring in front) and the station thaws
+  // that sleeper's pod in the hypersleep chamber. Faces the open floor next to it, south first.
+  // No lights: emissive parts + bloom only, so a district's light count never changes.
+  buildCrewTerminal() {
+    let r0 = -1, c0 = -1;
+    for (let r = 0; r < this.rows && r0 < 0; r++) for (let c = 0; c < this.cols; c++) if (this.grid[r][c] === "K") { r0 = r; c0 = c; break; }
+    if (r0 < 0) return;
+    const dir = [[1, 0], [0, 1], [0, -1], [-1, 0]].find(([dr, dc]) => this.isFloorish(r0 + dr, c0 + dc) && !this.solid(r0 + dr, c0 + dc, CITY, "walk")) || [1, 0];
+    const metal = new THREE.MeshStandardMaterial({ color: 0x1a2130, metalness: 0.75, roughness: 0.35 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x0b1018, metalness: 0.6, roughness: 0.5 });
+    const ctr = this.center(r0, c0);
+    const g = new THREE.Group();
+    g.position.set(ctr.x, 0, ctr.z);
+    g.rotation.y = Math.atan2(dir[1], dir[0]);   // local +z = the open side
+    const back = new THREE.Mesh(new THREE.BoxGeometry(TILE, 3.4, 1.3), metal);
+    back.position.set(0, 1.7, -0.35);
+    // the desk sticks out of the wall, the screen leans back above it
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.0, 0.62), dark);
+    desk.position.set(0, 0.5, 0.6);
+    const deskTop = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.08, 0.7), metal);
+    deskTop.position.set(0, 1.04, 0.6);
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.02, 0.12), metal);
+    frame.position.set(0, 1.85, 0.36); frame.rotation.x = -0.18;
+    const screenMat = new THREE.MeshBasicMaterial({ map: crewTermTexture(), color: new THREE.Color(0.75, 0.42, 0.12) });
+    const screen = new THREE.Mesh(new THREE.PlaneGeometry(1.32, 0.86), screenMat);
+    screen.position.set(0, 1.85, 0.43); screen.rotation.x = -0.18;
+    // the card slot on the desk
+    const slotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.9, 0.5, 0.15) });
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.05, 0.1), slotMat);
+    slot.position.set(0, 1.1, 0.78);
+    const stripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.75, 0.42, 0.12) });
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.07, 0.05), stripMat);
+    strip.position.set(0, 3.0, 0.31);
+    for (const m of [back, desk, frame]) { m.castShadow = true; m.receiveShadow = true; }
+    // floating ID-card badge so it reads from across the district
+    const badge = new THREE.Sprite(new THREE.SpriteMaterial({ map: cardBadgeTexture(), transparent: true, depthWrite: false }));
+    badge.scale.set(0.95, 0.95, 1); badge.position.set(0, 4.1, 0.3);
+    // where to stand: a ring on the floor tile in front
+    const padMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.2, 0.8, 0.2), transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false });
+    const pad = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.74, 32), padMat);
+    pad.rotation.x = -Math.PI / 2; pad.position.set(0, 0.03, TILE);
+    g.add(back, desk, deskTop, frame, screen, slot, strip, badge, pad);
+    this.group.add(g);
+    const front = this.center(r0 + dir[0], c0 + dir[1]);
+    this.crewTerm = {
+      r: r0, c: c0, ...ctr, fx: front.x, fz: front.z, labelAt: { x: (ctr.x + front.x) / 2, z: (ctr.z + front.z) / 2 },
+      group: g, screenMat, slotMat, stripMat, padMat, badge, state: "locked", progress: 0,
+    };
+  }
+
+  // ---------- revive chambers ("U"): a glass tube set into a wall ----------
+  // Spend a revive cell here to bring back a downed crew member. The tube faces the open floor
+  // next to it (south first, so the camera sees it). No lights: emissive parts + bloom only,
+  // so a district's light count never changes.
+  buildChambers() {
+    this.chambers = [];
+    const metal = new THREE.MeshStandardMaterial({ color: 0x1a2130, metalness: 0.75, roughness: 0.35 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x0b1018, metalness: 0.6, roughness: 0.5 });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x9fe8ff, transparent: true, opacity: 0.2, metalness: 0.3, roughness: 0.08, depthWrite: false, side: THREE.DoubleSide,
+    });
+    if (!this.crossTex) this.crossTex = crossTexture();
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) {
+      if (this.grid[r][c] !== "U") continue;
+      const dir = [[1, 0], [0, 1], [0, -1], [-1, 0]].find(([dr, dc]) => this.isFloorish(r + dr, c + dc) && !this.solid(r + dr, c + dc, CITY, "walk")) || [1, 0];
+      const ctr = this.center(r, c);
+      const g = new THREE.Group();
+      g.position.set(ctr.x, 0, ctr.z);
+      g.rotation.y = Math.atan2(dir[1], dir[0]);   // local +z = the open side
+      // wall block with an alcove cut into its front
+      const back = new THREE.Mesh(new THREE.BoxGeometry(TILE, 3.6, 1.3), metal);
+      back.position.set(0, 1.8, -0.35);
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(TILE, 0.7, 0.7), metal);
+      lintel.position.set(0, 3.25, 0.65);
+      const plinth = new THREE.Mesh(new THREE.BoxGeometry(TILE, 0.3, 0.7), dark);
+      plinth.position.set(0, 0.15, 0.65);
+      const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.34, 3.6, 0.7), metal);
+      sideL.position.set(-0.83, 1.8, 0.65);
+      const sideR = sideL.clone(); sideR.position.x = 0.83;
+      const backplate = new THREE.Mesh(new THREE.PlaneGeometry(1.32, 2.6), dark);
+      backplate.position.set(0, 1.6, 0.31);
+      for (const m of [back, lintel, sideL, sideR]) { m.castShadow = true; m.receiveShadow = true; }
+      // the tube: glass, glowing fluid with rising streaks, a ring at each end
+      const fluidTex = ventStreakTexture();
+      fluidTex.repeat.set(2, 1);
+      const fluidMat = new THREE.MeshBasicMaterial({ map: fluidTex, color: new THREE.Color(0.1, 0.6, 0.4), transparent: true, opacity: 0.55, depthWrite: false });
+      const fluid = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 2.3, 18, 1, true), fluidMat);
+      fluid.position.set(0, 1.55, 0.62);
+      const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 2.4, 20, 1, true), glassMat);
+      glass.position.copy(fluid.position);
+      const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 1.6, 1.0) });
+      const ringGeo = new THREE.TorusGeometry(0.43, 0.045, 6, 24);
+      const ringLo = new THREE.Mesh(ringGeo, ringMat); ringLo.rotation.x = Math.PI / 2; ringLo.position.set(0, 0.38, 0.62);
+      const ringHi = ringLo.clone(); ringHi.position.y = 2.72;
+      // silhouette of whoever is being revived; fades in while it works
+      const figureMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.3, 0.2), transparent: true, opacity: 0, depthWrite: false });
+      const figure = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 1.0, 4, 10), figureMat);
+      figure.position.set(0, 1.5, 0.62);
+      // status strip on the lintel + a cross sign above
+      const stripMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.2, 1, 0.6) });
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.07, 0.05), stripMat);
+      strip.position.set(0, 3.05, 1.01);
+      const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.crossTex, transparent: true, depthWrite: false }));
+      sign.scale.set(0.95, 0.95, 1); sign.position.set(0, 4.3, 0.4);
+      // where to stand: a ring on the floor tile in front
+      const padMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 1.6, 1.0), transparent: true, opacity: 0.3, side: THREE.DoubleSide, depthWrite: false });
+      const pad = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.74, 32), padMat);
+      pad.rotation.x = -Math.PI / 2; pad.position.set(0, 0.03, TILE);
+      g.add(back, lintel, plinth, sideL, sideR, backplate, figure, fluid, glass, ringLo, ringHi, strip, sign, pad);
+      this.group.add(g);
+      const front = this.center(r + dir[0], c + dir[1]);
+      this.chambers.push({
+        r, c, ...ctr, fx: front.x, fz: front.z, labelAt: { x: (ctr.x + front.x) / 2, z: (ctr.z + front.z) / 2 },
+        group: g, fluidMat, ringMat, stripMat, figureMat, padMat, sign, state: "idle", progress: 0, tint: null,
+      });
+    }
+  }
+
+  // ---------- revive cells ("+"): a small glowing vial on the floor ----------
+  buildCells() {
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0xc8fff0, transparent: true, opacity: 0.35, metalness: 0.2, roughness: 0.1, depthWrite: false });
+    const coreMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 2.4, 1.4) });
+    const capMat = new THREE.MeshStandardMaterial({ color: 0x2a3244, metalness: 0.8, roughness: 0.3 });
+    const glow = glowSprite();
+    this.cells = this.spawns.cells.map(p => {
+      const g = new THREE.Group();
+      g.position.set(p.x, 0, p.z);
+      const vial = new THREE.Group();
+      vial.add(new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.5, 12), glassMat));
+      vial.add(new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.42, 10), coreMat));
+      for (const y of [-0.27, 0.27]) {
+        const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.07, 12), capMat);
+        cap.position.y = y; vial.add(cap);
+      }
+      vial.position.y = 0.95; vial.rotation.z = 0.35;
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: 0x5dffb0, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false }));
+      halo.scale.set(1.5, 1.5, 1); halo.position.y = 0.95;
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.58, 28), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 1.6, 1.0), transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03;
+      g.add(vial, halo, ring);
+      this.group.add(g);
+      return { ...p, group: g, vial, taken: false };
+    });
+  }
+
+  takeCell(cell) { cell.taken = true; cell.group.visible = false; }   // no lights inside, safe to hide
+
+  updateRevive(dt) {
+    const t = this.time;
+    for (const ch of this.chambers || []) {
+      const pulse = 0.5 + 0.5 * Math.sin(t * 5 + ch.c);
+      const k = ch.state === "reviving" ? 1.6 + ch.progress * 1.2 : ch.state === "ready" ? 0.8 + pulse * 0.9 : 0.5;
+      ch.fluidMat.color.setRGB(0.12 * k, 0.95 * k, 0.6 * k);
+      ch.fluidMat.map.offset.y = (-t * (ch.state === "reviving" ? 1.8 : 0.3)) % 1;
+      ch.ringMat.color.setRGB(0.25 * k, 1.5 * k, 0.95 * k);
+      if (ch.state === "idle") ch.stripMat.color.setRGB(0.15, 0.7, 0.55);
+      else ch.stripMat.color.setRGB(0.4 + pulse, 2.4, 1.2);
+      ch.padMat.opacity = ch.state === "idle" ? 0.22 : 0.35 + pulse * 0.4;
+      if (ch.tint) ch.figureMat.color.copy(ch.tint).multiplyScalar(0.5);
+      ch.figureMat.opacity = ch.state === "reviving" ? ch.progress * 0.9 : Math.max(0, ch.figureMat.opacity - dt * 1.2);
+      ch.sign.position.y = 4.3 + Math.sin(t * 2 + ch.c) * 0.1;
+    }
+    for (const cell of this.cells || []) {
+      if (cell.taken) continue;
+      cell.vial.rotation.y += dt * 1.8;
+      cell.vial.position.y = 0.95 + Math.sin(t * 3 + cell.c) * 0.1;
+    }
+    for (const p of this.props || []) if (p.halo && p.state === "idle") p.halo.material.opacity = 0.3 + 0.25 * Math.sin(t * 3 + p.c);
+    const ct = this.crewTerm;
+    if (ct) {
+      // locked = waiting for a card (dim amber) / ready = you carry the card (gold, pulsing)
+      // uploading = you're standing at it / done = that crew member is awake (green)
+      const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+      const [r, g, b] = ct.state === "done" ? [0.35, 1.9, 0.8]
+        : ct.state === "uploading" ? [2.4, 1.6 + ct.progress * 0.8, 0.4]
+        : ct.state === "ready" ? [1.4 + pulse, 0.9 + pulse * 0.6, 0.2]
+        : [0.75, 0.42, 0.12];
+      ct.screenMat.color.setRGB(r, g, b);
+      ct.slotMat.color.setRGB(r * 1.2, g * 1.2, b * 1.2);
+      ct.stripMat.color.setRGB(r, g, b);
+      ct.padMat.color.setRGB(r * 0.8, g * 0.8, b * 0.8);
+      ct.padMat.opacity = ct.state === "locked" || ct.state === "done" ? 0.22 : 0.35 + pulse * 0.4;
+      ct.badge.position.y = 4.1 + Math.sin(t * 2 + ct.c) * 0.1;
+    }
+  }
+
+  // ---------- throwable props (Crane): "m" heavy crate, "$" supply crate ----------
+  // Separate meshes (not instanced) so each one can be lifted, carried and thrown. They block
+  // walking and bullets like cover until Crane lifts one; then its tile turns into floor.
+  // Each group's origin is the crate's centre, so it spins around the middle in flight.
+  // Supply crates hold the level's `loot` list in map order (left to right, top to bottom).
+  buildProps() {
+    this.props = [];
+    const spots = [];
+    for (let r = 0; r < this.rows; r++) for (let c = 0; c < this.cols; c++) {
+      const ch = this.grid[r][c];
+      if (ch === "m" || ch === "$") spots.push({ r, c, ch, ...this.center(r, c) });
+    }
+    if (!spots.length) return;
+    const box = new THREE.BoxGeometry(1, 1, 1);
+    const steel = new THREE.MeshStandardMaterial({ color: 0x48506a, roughness: 0.5, metalness: 0.7 });
+    const frame = new THREE.MeshStandardMaterial({ color: 0x1a1e29, roughness: 0.6, metalness: 0.6 });
+    const hazard = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.95, 0.25) });
+    const crateDark = new THREE.MeshStandardMaterial({ color: 0x241b2e, roughness: 0.55, metalness: 0.5 });
+    const gold = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 1.5, 0.4) });
+    const glow = glowSprite();
+    const loot = this.level.loot || [];
+    let li = 0;
+    const part = (g, mat, w, h, d, x, y, z, ry = 0) => {
+      const m = new THREE.Mesh(box, mat);
+      m.scale.set(w, h, d); m.position.set(x, y, z); m.rotation.y = ry;
+      m.castShadow = !mat.isMeshBasicMaterial; m.receiveShadow = true;
+      g.add(m);
+      return m;
+    };
+    for (const s of spots) {
+      const g = new THREE.Group();
+      const rotY = (Math.floor(this.rand() * 4) * Math.PI) / 2 + (this.rand() - 0.5) * 0.2;
+      g.position.set(s.x, PROP_Y, s.z);
+      g.rotation.y = rotY;
+      let halo = null;
+      if (s.ch === "m") {
+        // heavy cargo crate: steel box, dark corner posts, orange hazard band
+        part(g, steel, 1.3, 1.0, 1.3, 0, 0, 0);
+        for (const [x, z] of [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]]) part(g, frame, 0.18, 1.06, 0.18, x, 0, z);
+        part(g, hazard, 1.34, 0.12, 1.34, 0, 0.12, 0);
+      } else {
+        // supply crate: dark box tied up with glowing gold straps and a bow, like a present
+        part(g, crateDark, 1.15, 0.9, 1.15, 0, -0.05, 0);
+        part(g, gold, 1.19, 0.94, 0.16, 0, -0.05, 0);
+        part(g, gold, 0.16, 0.94, 1.19, 0, -0.05, 0);
+        part(g, gold, 0.36, 0.1, 0.12, 0, 0.46, 0, Math.PI / 4);
+        part(g, gold, 0.36, 0.1, 0.12, 0, 0.46, 0, -Math.PI / 4);
+        halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: 0xffc04a, transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false }));
+        halo.scale.set(2.4, 2.4, 1);
+        g.add(halo);
+      }
+      this.group.add(g);
+      this.props.push({
+        r: s.r, c: s.c, ch: s.ch, x: s.x, z: s.z, kind: s.ch === "$" ? "supply" : "crate",
+        loot: s.ch === "$" ? loot[li++] || null : null, group: g, halo, rotY, state: "idle",
+      });
+    }
+  }
+
+  // Crane picks it up: the tile is floor from now on (until the district restarts).
+  liftProp(p) { this.grid[p.r][p.c] = "."; p.state = "held"; if (p.halo) p.halo.visible = false; }
+  // it hit something and broke (no lights inside, safe to hide)
+  smashProp(p) { p.state = "gone"; p.group.visible = false; }
 
   // Called after each hacked lock. Returns the gates that just opened.
   openGates(locksDone) {
@@ -1059,7 +1330,7 @@ export class World {
           const nr = r + dr, nc = c + dc;
           if (!this.inside(nr, nc) || seen[nr * this.cols + nc]) continue;
           const ch = this.grid[nr][nc];
-          if ("#cTR~goO".includes(ch) || ("123".includes(ch) && Number(ch) > k)) continue;
+          if ("#cTR~goOUKm$".includes(ch) ||("123".includes(ch) && Number(ch) > k)) continue;
           seen[nr * this.cols + nc] = 1; q.push([nr, nc]);
         }
       }
@@ -1133,13 +1404,16 @@ export class World {
 
     this.updateVents(blend, focusX, focusZ);
     this.updatePods(dt);
+    this.updateRevive(dt);
     if (this.ventColMesh) this.ventColMesh.material.map.offset.y = (-t * 2.5) % 1;
     if (this.gateTex) this.gateTex.offset.y = (t * 0.6) % 1;
     for (const gt of this.gates || []) {
-      if (!gt.group.visible) continue;
+      if (gt.hidden) continue;
       if (gt.open) {
         gt.fade = Math.max(0, gt.fade - dt * 1.8);
-        if (gt.fade === 0) gt.group.visible = false;
+        // hide everything but the light, which just goes dark: adding/removing a light from the
+        // scene makes three.js recompile every shader, a visible freeze mid-fight
+        if (gt.fade === 0) { gt.hidden = true; showExceptLights(gt.group, false); gt.light.intensity = 0; continue; }
       }
       const flick = gt.open ? (Math.sin(t * 60) > 0 ? 1 : 0.35) : 0.85 + Math.sin(t * 5 + gt.n) * 0.1;
       gt.curtainMat.opacity = 0.9 * gt.fade * flick;
@@ -1266,4 +1540,61 @@ function cardTexture() {
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
+}
+
+// Crew terminal screen: header bar, an ID card outline next to the slot arrow, text lines.
+// Drawn in light greys; the material colour tints it (amber / gold / green by state).
+function crewTermTexture() {
+  const c = document.createElement("canvas");
+  c.width = 256; c.height = 168;
+  const g = c.getContext("2d");
+  g.fillStyle = "#0a0c10"; g.fillRect(0, 0, 256, 168);
+  g.fillStyle = "#d8d8d8"; g.fillRect(10, 10, 236, 22);
+  g.fillStyle = "#0a0c10"; g.font = "bold 16px monospace"; g.fillText("CREW TERMINAL", 18, 27);
+  g.strokeStyle = "#e8e8e8"; g.lineWidth = 4; g.strokeRect(22, 50, 84, 56);
+  g.fillStyle = "#9a9a9a"; g.fillRect(30, 60, 20, 26);
+  for (let i = 0; i < 3; i++) g.fillRect(58, 62 + i * 10, 40 - i * 8, 4);
+  g.fillStyle = "#e8e8e8"; g.beginPath(); g.moveTo(64, 116); g.lineTo(46, 134); g.lineTo(82, 134); g.closePath(); g.fill();
+  g.font = "bold 15px monospace";
+  g.fillText("INSERT", 128, 70); g.fillText("CREW ID", 128, 92);
+  g.fillStyle = "#8a8a8a"; g.font = "12px monospace";
+  g.fillText("HYPERSLEEP", 128, 122); g.fillText("CONTROL", 128, 138);
+  for (let y = 0; y < 168; y += 4) { g.fillStyle = "rgba(0,0,0,0.18)"; g.fillRect(0, y, 256, 1); }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Gold ID-card badge floating over a crew terminal.
+function cardBadgeTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "rgba(18,12,4,0.85)"; g.strokeStyle = "#ffc04a"; g.lineWidth = 7;
+  g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.fillStyle = "#ffcf6a"; g.fillRect(28, 42, 72, 46);
+  g.fillStyle = "#3a2608"; g.fillRect(36, 52, 20, 26);
+  g.fillStyle = "#fff0c8"; for (let i = 0; i < 3; i++) g.fillRect(62, 54 + i * 9, 30 - i * 7, 4);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Green cross badge floating over a revive chamber.
+function crossTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d");
+  g.fillStyle = "rgba(4,16,12,0.85)"; g.strokeStyle = "#7dffb0"; g.lineWidth = 7;
+  g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.fillStyle = "#c8ffe0";
+  g.fillRect(52, 26, 24, 76); g.fillRect(26, 52, 76, 24);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// Toggle a group's meshes/sprites but never its lights (light count changes = full shader recompile).
+function showExceptLights(group, on) {
+  for (const o of group.children) if (!o.isLight) o.visible = on;
 }

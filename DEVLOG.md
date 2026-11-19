@@ -339,3 +339,131 @@ Rook uses Jax's body for now, recolored in acid green. She needs her own Blender
 
 ![remote hack through the vault glass](devlog/2026-11-13/32-remote-hack-vault.jpg)
 ![hypersleep bay](devlog/2026-11-13/33-hypersleep-bay.jpg)
+
+## Day 4 — 2026-11-16: Waking up in the hypersleep chamber
+
+**Restructure: the hypersleep chamber moves to the very start.** The intro already said *"Wake up, explorer. Life support failing."*, but you just spawned on a street. Now the pods are where the story begins.
+
+**District 01 opens in the chamber.** A row of dead sleepers, the three numbered crew pods (03, 07, 11), and **Pod 01: Jax's own.** On the briefing screen it's shut and pulsing amber with him inside. When you enter the district, the lid lifts, cold fog rolls out, and Jax climbs out. You walk past Rook's pod in the first ten seconds, still locked, so you know someone else is in there.
+
+![Pod 01, Jax still inside](devlog/2026-11-16/34-pod01-asleep.jpg)
+![the lid lifts and Jax is out](devlog/2026-11-16/35-jax-wakes.jpg)
+
+**Rook's ID card is now in District 03 // Cryo Admin**, in the top-right wing behind gate 2, next to a rift turret. Picking it up wakes her on the spot: the station verifies the card, Pod 07 back in the chamber thaws, and she patches into your link. Replay District 01 afterwards and her pod is open and empty.
+
+![picking up the card in District 03](devlog/2026-11-16/36-rook-card-district03.jpg)
+
+**District 05 becomes PORTAL ZERO.** The pod room is gone. That hall is now plain floor with a little cover, and everything else stays: the sealed glass vault, the gates, the rift node and the portal room. Next, the **Warden** moves into the portal room. Once its door opens, you have to beat him before the last portal activates.
+
+**New rule: a district can need a character.** District 05's vault can only be hacked by Rook, so the level now says `needs: "rook"`. Pick it from District Select and she's brought along and selected automatically, even if you skipped her card. The game can't softlock on a missing crew member.
+
+![District 05 starts as Rook](devlog/2026-11-16/37-portal-zero-rook-selected.jpg)
+
+The script check confirms every lock, the card and the exit are still reachable in all five districts. A headless playtest covered the full chain: wake up, card → Rook, District 05 as Rook. New District Select thumbnails for 01 (the chamber) and 05 (the vault).
+
+## Day 5 — 2026-11-17: Two bars each, and a tube in the wall
+
+**Every crew member now has their own health and phase energy.** Before, Jax and Rook shared one body's worth of bars, so swapping was just a recolor. Now TAB parks the current character's health and energy and brings in the other's. The big bars always show who you're playing. Under them, each crew card has its own mini health bar (green) and energy bar (violet), so you can see Jax at 40% while you're running around as Rook. A benched character slowly patches themselves up. Swapping out of a bad fight is a real move now.
+
+![each crew card has its own bars](devlog/2026-11-17/38-own-health-bars.jpg)
+
+**Going down instead of game over.** If the character you're playing hits zero while a teammate is still standing, they go **down** in a burst of their color, and the teammate takes over right where they fell. The downed card turns red with DOWN on it, and TAB refuses to swap to them. Lose the whole crew and it's the old "SIGNAL LOST" screen, now reading *WHOLE CREW DOWN*. The checkpoint brings everyone back.
+
+![Rook is down, Jax takes over](devlog/2026-11-17/39-rook-down.jpg)
+
+**Revive chambers.** Every district has one: a glass tube set into a wall, glowing green fluid, a cross sign above it and a ring on the floor in front. **Revive cells** are hidden around each district (a small glowing vial, a green cross on the minimap). You can carry three, and they stay with you between districts. With a crew member down and a cell in your pocket, the waypoint points at the chamber. Stand on the ring and the tube floods bright green while their silhouette fills in. A second and a half later they're back at full health.
+
+![reviving Rook in District 03](devlog/2026-11-17/40-revive-chamber-reviving.jpg)
+
+Where they are: District 01 has its tube in the hypersleep chamber, right above the pods. District 02 puts it on the middle island, District 03 next to Rook's ID card, and District 04 on the corridor over the vent field. District 05 puts it in the main hall, directly below the door to the portal room, so you can patch the crew up before the Warden fight.
+
+![District 05's chamber, under the boss door](devlog/2026-11-17/41-revive-chamber-district05.jpg)
+
+The map check now also confirms every district has exactly one chamber with floor in front of it and that every cell can be reached. A new headless playtest went through the whole loop: separate bars, swap, Rook goes down, Jax takes over, no swap to a downed crew member, a chamber without a cell does nothing, pick up a cell, revive, swap back, then both down for the game over screen. 20/20 passed, and the 12 earlier checks still pass.
+
+## Day 5 (cont.) — 2026-11-17: Hollis Crane, the tank who throws things
+
+**A third crew member.** Pod 11 finally has a name: **Hollis Crane**, heavy lifter. His ID card sits in a dead-end alcove in District 04, just north of the revive chamber, guarded by a drone. Pick it up and he climbs out of his pod asking whether he dropped the reactor core he was carrying. He's the tank: **160 health** where Jax and Rook have 100, a little slower on his feet, and built bigger. For now he's Jax's body scaled up and tinted violet, until he gets his own model.
+
+![Crane wakes up](devlog/2026-11-17/42-crane-wakes-up.jpg)
+
+**SHIFT is grab and throw.** Walk up to a heavy crate (orange band) or a small enemy and a prompt pops up: SHIFT LIFT. Crane hoists it over his head, puts his rifle away and slows down under the weight. SHIFT again, or a left click, throws it where you aim. It flies in a short arc and smashes on the first wall or enemy it meets, or where it lands, and everything within a few meters takes a hit and gets knocked back. Drones and wraiths count as small enemies. A thrown one doesn't get back up.
+
+![lifting a supply crate](devlog/2026-11-17/43-crane-lifts-supply-crate.jpg)
+![mid-throw](devlog/2026-11-17/44-supply-crate-thrown.jpg)
+![grabbing a drone](devlog/2026-11-17/45-crane-holds-drone.jpg)
+
+**Supply crates.** Some crates are tied up with glowing gold straps and a bow on top, like a present. Throw one and it breaks open with something inside. Each district lists what its supply crates hold, so the good stuff is placed on purpose: District 04's first one has a **scatter gun**, District 05 has a **rail gun** behind gate 1 and a **revive cell** near the start. Plain crates sometimes spill a health or energy pickup.
+
+**Pickup weapons.** The scatter gun fires a 6-pellet fan (36 shots). The rail gun fires slow, heavy rounds that punch through three enemies (20 shots). A pickup weapon replaces the rifle until it's empty, shows its name and ammo under the revive counter, and belongs to whoever picked it up: swap to Jax and he has his rifle, swap back and Crane still has the scatter gun.
+
+![scatter gun on the HUD](devlog/2026-11-17/46-scatter-gun-hud.jpg)
+
+Nothing in any district needs Crane to finish it: the map check treats every throwable crate as a solid wall and still reaches every lock, card and exit. It also checks that Crane can walk up to each crate. Restarting a district puts every crate back.
+
+Two small fixes on the way: a click now counts even if it starts and ends between two frames (that matters on slow machines, and it's how the headless playtest found it), and the waypoint pinned to the top edge of the screen sits lower now, so it stops covering the toast messages.
+
+![District 04's alcove: the card, a heavy crate and a supply crate](devlog/2026-11-17/47-district04-crates.jpg)
+
+A new headless playtest covers Crane end to end: the card and wake-up story, 160 health and the HUD, lifting (the crate's tile turns into floor), throwing a supply crate open, picking up and firing the scatter gun, keeping it through a swap, grabbing and throwing a drone, a plain crate, dropping a crate by swapping out, the district restart, District 05's revive cell crate, and the rail gun. 22/22 passed, and the 12 older crew checks still pass.
+
+## Day 5 (cont.) — 2026-11-17: Crew terminals, "Boulder", and real bodies from Rodin
+
+**ID cards go to a terminal now.** Picking up a crew ID card used to wake that sleeper on the spot. Now it only tells you *ID CARD: IRIS ROOK // TAKE IT TO THE CREW TERMINAL*. Every district with a card has one **crew terminal**: a console set into a wall, with a desk, a card slot, a screen reading INSERT CREW ID and a gold ID-card badge floating above it. While you carry the card, the objective line and the waypoint send you there. Stand on the ring in front of it, the ID uploads with a progress bar, and the pod back in the hypersleep chamber thaws. Then the wake-up scene plays as before. The card stays with you if you die and respawn at a checkpoint. District 03's terminal is in the north wall next to the revive tube, a few steps from Rook's card. District 04's is right beside its revive tube, just below Crane's alcove. The map check now makes sure every district with a card has exactly one terminal you can walk up to.
+
+**Hollis "Boulder" Crane.** The tank has a callsign. The HUD calls him BOULDER, and his wake-up line now includes "Call me Boulder, everybody does."
+
+**Real bodies for the crew.** The concept art for Jax, Iris and Boulder went through **Hyper3D Rodin** (image to 3D). Each one came back as a 1,000,000-face model with full PBR textures, way too heavy for a browser game, so in Blender each model gets:
+
+- **cut down** to 20,000 triangles, with its textures shrunk to 1K
+- **scaled** to Jax's height and centered on its legs
+- **given Jax's skeleton**, with the leg bones moved to fit the new body
+
+Rodin didn't use the T/A pose, so all three came back holding their rifle straight out in front. That's exactly the pose the game wants: the game never animates the arms, only the legs, hips, spine and head. So the arms, the backpack and the collar ride on the chest, and the rifle (fused into the hands) gets its own **Gun** bone so recoil still kicks it back. A **Muzzle** point at the barrel tip tells the game where the bullets come from. The glow in each texture was turned grey, so the game can tint it: Jax's lines follow the world he's in (cyan in the City, red in the Breach), Rook's glow green and Boulder's glow violet.
+
+![concept art vs Rodin models](devlog/2026-11-17/48-rodin-crew-concept-vs-model.jpg)
+![rig test: stride and torso twist](devlog/2026-11-17/49-rodin-crew-rigged-stride.jpg)
+
+Each crew member now switches to their own model when you swap, and the hand-built Jax stays in as the backup if a model ever fails to load. Each file is about 1 MB. Next: seeing them under the game's lights, and the next Rodin batch (Santa, both launchers, the Warden, and new drone, turret and wraith designs).
+
+**Legs that actually run.** In the game the new bodies looked like they were dragging their legs. The walk had always been a bit weak: the stride was too short for how fast you move, so the feet slid along the floor, and the knee only bent about 45°. The bigger, more detailed Rodin bodies made it obvious. The new run takes longer, quicker strides sized to the movement speed, and the knee starts bending at push-off and tucks the heel up behind (up to about 80°) as the leg swings through, then straightens to plant. The hips bounce a little more and the body leans into the run. Boulder takes longer, slower steps because he's bigger. The hand-built Jax uses the same code, so he runs better too.
+
+![the new run: game camera on top, side view below](devlog/2026-11-17/50-run-cycle-fixed.jpg)
+
+## Day 6 — 2026-11-18: New enemies from Rodin, and a body for the Warden
+
+**The second Rodin batch is in:** the Warden (District 05's boss), the drone, the turret and the wraith, all from the concept art. Same route as the crew: Rodin gives back a 1,000,000-face model with 2K PBR textures, and Blender cuts it down. The enemies go down to 6–7k triangles each, because a room can hold a lot of them. The Warden keeps 20k.
+
+![concept art vs Rodin models](devlog/2026-11-18/51-rodin-enemies-concept-vs-model.jpg)
+
+**Splitting off the moving parts.** A Rodin model is one solid piece, but the game moves parts of each enemy in code, so Blender cuts them apart by position:
+
+- **Drone:** each of the 4 rotors is found by fitting a circle to the rim of its fan duct. Everything inside the duct (blades and hub) becomes its own part, `Rotor1`–`Rotor4`, spinning around its own center. Opposite rotors spin opposite ways.
+- **Turret:** it's now a **four-legged walker**. The dome, its eye and the twin gun pods turn as one piece (`Head`) on top of legs that stay planted.
+- **Wraith:** one floating crystal that bobs and now sways a little as it drifts.
+
+![moving parts: rotors, turning dome, the Warden's skeleton](devlog/2026-11-18/52-rodin-enemies-moving-parts.jpg)
+
+**The glow keeps meaning something.** Each texture's glow was turned grey, like the crew's, so the game colors it per enemy: drones pink, turrets orange in the City, rift turrets crimson in the Breach, wraiths red. The attack warning that used to flash a small eye now pulses every glow line on the model. A wraith about to lunge flares brighter, and a hit flashes the whole body. The Rodin glow rings are much bigger than the old eye lenses, so the glow is turned down to keep the bloom from washing out the model.
+
+**A turret bug the old model hid.** Every turret spawns turned a random way, and the head was aimed as if the body wasn't turned. Bullets went at you, but the barrels could point somewhere else entirely. The old boxy turret looked about the same from every side, so nobody noticed. The walker would have given it away, so the head now aims in world space and the barrels point where the bullets go (checked in the game: the barrels point straight at you, even on a turret whose body faces a different way).
+
+![in the game: the City and Breach versions, and both turret walkers](devlog/2026-11-18/53-rodin-enemies-in-game.jpg)
+
+**The Warden.** He gets his own skeleton for the boss fight: legs that walk, a waist that twists, and two arms that aim from the shoulder. Each arm carries **two rotary cannons**. Blender finds each barrel cluster (the two on an arm are stacked with only about 1 cm between them), works out which way it points, and gives it a bone so the barrels can spin around their own axis while he fires. There's a `Muzzle` point at the tip of each of the four cannons. He's 3.4 m tall, nearly twice Jax's height. The model is ready (`assets/models/warden.glb`), but the fight in the Portal Zero portal room isn't built yet, so the game doesn't load him yet.
+
+**Santa, parked behind a switch.** The Christmas event is on hold, but Rodin is only on hand for a few more days, so Santa's model is made now and kept out of the game. He came back in a clean A-pose with his snowball launcher left off (it's its own model, still to come), so the crew's rig script, which expects a gun in the hands, didn't fit. A new script (`rig_unarmed.py`) gives him Jax's skeleton and moves Jax's arm bones onto Santa's hanging arms, so the arms can be posed later to hold the launcher. It finds each arm by walking the mesh from the fingertip up to the shoulder, staying outside the torso and in front of the backpack. A first try that sliced the body by height missed some fingertip vertices, and those stretched into long spikes as soon as the arms moved. A `Gun` bone on his right hand is where the launcher will attach. `src/events.js` lists the Christmas event as off, and while it's off the game never even downloads `santa.glb`.
+
+![Santa: the model, his skeleton weights, and the rig test](devlog/2026-11-18/54-santa-event-model-rigged.jpg)
+
+**A snowman, behind the same switch.** The Christmas event gets an enemy: an armored robot snowman with a carrot nose, coal buttons, ice-crystal spikes down his back, and two clawed gauntlets that float beside him. He's cut to 8k triangles and stands 1.8 m tall. The gauntlets came out of Rodin as separate pieces of the mesh, so splitting them off was clean. His bottom snowball is cut away at the narrowest point of his waist, and a sphere fitted through it puts its centre exactly one radius off the floor, so it can roll under him without bobbing. That leaves four parts that move in code: the ball rolls, the body turns to face you, and each gauntlet can bob and swipe on its own. Like Santa, he's listed under the Christmas event in `src/events.js` and never loads while the event is off.
+
+![the snowman: his moving parts, at rest, and moved](devlog/2026-11-18/55-snowman-event-model-parts.jpg)
+
+**Iris gets a Christmas skin.** Her Christmas outfit (candy-cane stripes, green, gold and silver armor) came back from Rodin as a whole new model, while the skins so far only recolor the same model. So a skin can now name a model of its own, and the game puts that model on her instead of her usual one. The skin is tagged with the Christmas event: while the event is off it's left out of the skin list, it counts as locked, and even a saved choice from an old event falls back to her normal look. Checked in Node both ways: with the event off she wears her netrunner suit and no Christmas model loads; switched on, the CANDY CANE skin shows up and swaps her model. She came in a wide A-pose with her arms 43° out, so the unarmed rig script now measures each arm from the shoulder to the fingertip instead of by height. Bringing the arms down to her sides in the rig test works without tearing at the shoulders. Two things wait for the event itself: Rodin left her gun out (the `Gun` bone on her right hand is where one attaches, and the arms need posing to hold it), and this model has no glow map, so the crew color and phase tint don't show on it.
+
+![Iris's Christmas skin: the model, her skeleton weights, and the rig test](devlog/2026-11-18/56-iris-christmas-skin-rigged.jpg)
+
+**Weapons become their own models.** Every character will be able to carry every weapon and wear every skin, so a weapon can't be part of a character's body any more. The plan: all characters and skins come out of Rodin empty-handed, every weapon is a separate model, and the game puts the weapon in the right hand and poses the arms to hold it. The first one is the **present launcher** for the Christmas event: red and gold, a bow on the barrel, a bell muzzle and a drum full of wrapped gifts. A new script (`weapon_prep.py`) lies it down the way the game holds weapons, barrel forward and handles down, and sizes it to 0.85 m. It finds the two handles below the barrel on either side of the drum (0.43 m apart, about right for two hands) and marks three points: `Grip` for the right hand, which is also the model's origin, `Foregrip` for the left hand, and `Muzzle` in the bell, where shots will come from. It sits behind the Christmas switch with the rest, and the holding itself comes once the empty-handed crew are in.
+
+![the present launcher](devlog/2026-11-18/57-present-launcher-weapon.jpg)

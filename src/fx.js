@@ -242,7 +242,7 @@ export class Flashes {
 // ---------- projectiles ----------
 const _up = new THREE.Vector3(0, 1, 0);
 export class Projectiles {
-  constructor(scene, max = 160) {
+  constructor(scene, max = 240) {
     this.list = [];
     const geo = new THREE.BoxGeometry(0.09, 0.09, 0.9);
     const glowGeo = new THREE.PlaneGeometry(0.7, 0.7);
@@ -258,14 +258,17 @@ export class Projectiles {
     }
   }
 
-  spawn({ x, z, y = 1.2, dx, dz, speed, damage, phase, friendly, color, size = 1 }) {
+  // pierce: how many enemies the round punches through before it stops (rail gun)
+  // life: seconds before it fizzles (the Warden's purge rings fly further)
+  spawn({ x, z, y = 1.2, dx, dz, speed, damage, phase, friendly, color, size = 1, pierce = 0, life = 1.6 }) {
     const p = this.list.find(b => !b.active);
     if (!p) return null;
     p.active = true;
     p.x = x; p.z = z; p.y = y;
     p.vx = dx * speed; p.vz = dz * speed;
-    p.life = 1.6;
+    p.life = life;
     p.damage = damage; p.phase = phase; p.friendly = friendly;
+    p.pierce = pierce; p.hits = pierce ? new Set() : null;
     p.radius = friendly ? 0.18 : 0.28;
     p.m.visible = true;
     p.m.material.color.copy(color).multiplyScalar(friendly ? 4 : 3);

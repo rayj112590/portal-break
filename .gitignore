@@ -10,3 +10,8 @@ art/solidcraft/test.*
 
 # character reference sheets (not ours to republish)
 art/reference/
+
+# Rodin downloads (100+ MB each); only the processed GLBs in assets/models/ are committed
+art/rodin-raw/
+# Rodin working .blend files (about 95 MB); rebuilt from art/rodin-raw with art/rodin-work/scripts
+art/rodin-work/*.blend

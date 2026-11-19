@@ -40,6 +40,17 @@ export const PLAYER = {
   energyRegen: 14,
 };
 
+// Pickup weapons: found in supply crates (Crane smashes them open). They replace the rifle until
+// the ammo runs out, and belong to whoever picked them up (kept through crew swaps).
+export const WEAPONS = {
+  scatter: { name: "SCATTER GUN", ammo: 36, rate: 3, pellets: 6, cone: 0.42, damage: 9, speed: 36, css: "#ff9a3c", color: new THREE.Color(1.0, 0.55, 0.15) },
+  // rail: fast enough to feel like a power-up when held down (at 1.8/s it read as "one shot, then
+  // nothing", and did less damage per second than the rifle), and it hits harder than the rifle
+  rail:    { name: "RAIL GUN", ammo: 40, rate: 3.5, pellets: 1, cone: 0, damage: 36, speed: 75, pierce: 3, size: 2.2, css: "#bfe8ff", color: new THREE.Color(0.7, 0.9, 1.0) },
+};
+// what a pickup is called in toasts (supply crate contents)
+export const LOOT_NAME = { hp: "HEALTH", energy: "PHASE ENERGY", cell: "REVIVE CELL", gift: "GIFT", scatter: "SCATTER GUN", rail: "RAIL GUN" };
+
 export const ENEMY = {
   drone:  { hp: 30, speed: 4.0, radius: 0.5, phase: CITY,   fireEvery: 1.9, damage: 5,  bulletSpeed: 14, range: 12, score: 50 },
   turret: { hp: 70, speed: 0,   radius: 0.7, phase: CITY,   fireEvery: 2.6, damage: 5,  bulletSpeed: 17, range: 14, score: 100 },

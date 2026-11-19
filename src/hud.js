@@ -1,9 +1,9 @@
 // ============================================================
 //  HUD — DOM overlay drawn on top of the WebGL canvas.
 // ============================================================
-import { CREW } from "./crew.js";
+import { CREW, MAX_CELLS, maxHp } from "./crew.js";
 import * as THREE from "three";
-import { CITY, BREACH, PALETTE } from "./config.js";
+import { CITY, BREACH, PALETTE, WEAPONS } from "./config.js";
 
 const $ = id => document.getElementById(id);
 const _v = new THREE.Vector3();
@@ -41,7 +41,8 @@ export class Hud {
 
   setDistrict(name) { this.district.textContent = name; }
 
-  // Crew roster under the bars + callsign + which ability SHIFT fires.
+  // Crew roster under the bars + callsign + which ability SHIFT fires. Each crew member gets
+  // their own mini health / phase bars (filled in every frame from game.vitals).
   setCrew(list, active) {
     const c = CREW[active];
     this.root.dataset.char = active;
@@ -49,8 +50,43 @@ export class Hud {
     cs.innerHTML = `${c.short} <span>// ${c.tag}</span>`;
     const el = $("crew-strip");
     el.classList.toggle("hidden", list.length < 2);
-    el.innerHTML = list.map((id, i) => `<span class="cm${id === active ? " on" : ""}" style="--cc:${CREW[id].css || "var(--accent)"}"><kbd>${i + 1}</kbd>${CREW[id].short.split(" ").pop()}</span>`).join("")
+    el.innerHTML = list.map((id, i) => `<span class="cm${id === active ? " on" : ""}" data-id="${id}" style="--cc:${CREW[id].css || "var(--accent)"}">`
+      + `<span class="cm-name"><kbd>${i + 1}</kbd>${CREW[id].short.split(" ").pop()}<em>DOWN</em></span>`
+      + `<i class="mb"><b class="mh"></b></i><i class="mb me"><b class="mp"></b></i></span>`).join("")
       + `<span class="cm-tab"><kbd>TAB</kbd></span>`;
+    this.crewEls = [...el.querySelectorAll(".cm")].map(n => ({ id: n.dataset.id, root: n, hp: n.querySelector(".mh"), en: n.querySelector(".mp"), last: "" }));
+  }
+
+  updateCrewBars(game) {
+    for (const e of this.crewEls || []) {
+      const v = game.vitals[e.id];
+      if (!v) continue;
+      const key = `${Math.ceil(v.hp)}|${Math.round(v.energy)}|${v.down}`;
+      if (key === e.last) continue;
+      e.last = key;
+      const hpPct = Math.max(0, v.hp) / maxHp(e.id) * 100;
+      e.hp.style.width = `${hpPct}%`;
+      e.hp.classList.toggle("low", hpPct < 30);
+      e.en.style.width = `${Math.max(0, v.energy)}%`;
+      e.root.classList.toggle("down", v.down);
+    }
+    const el = this.cellsEl || (this.cellsEl = $("cells"));
+    const key = `${game.cells}`;
+    if (el && el.dataset.k !== key) {
+      el.dataset.k = key;
+      let pips = "";
+      for (let i = 0; i < MAX_CELLS; i++) pips += `<i class="${i < game.cells ? "on" : ""}"></i>`;
+      el.innerHTML = `<b>✚</b> REVIVE ${pips}`;
+    }
+    // pickup weapon (from a supply crate) and its ammo
+    const wEl = this.weaponEl || (this.weaponEl = $("weapon"));
+    const w = game.player.weapon, def = w && WEAPONS[w.id];
+    const wKey = def ? `${w.id}|${w.ammo}` : "";
+    if (wEl && wEl.dataset.k !== wKey) {
+      wEl.dataset.k = wKey;
+      wEl.classList.toggle("hidden", !def);
+      if (def) { wEl.style.setProperty("--wc", def.css); wEl.innerHTML = `<b>${def.name}</b><span>${w.ammo}</span>`; }
+    }
   }
 
   // Tutorial hint above the phase indicator; null hides it.
@@ -124,7 +160,7 @@ export class Hud {
 
   update(dt, game) {
     const { player, phase, blend, camera } = game;
-    const hpPct = Math.max(0, player.hp) / 100;
+    const hpPct = Math.max(0, player.hp) / maxHp(game.char);
     this.hpFill.style.width = `${hpPct * 100}%`;
     this.hpFill.classList.toggle("low", hpPct < 0.3);
     this.hpText.textContent = Math.max(0, Math.ceil(player.hp));
@@ -135,6 +171,7 @@ export class Hud {
     this.dashCd.style.height = `${(player.dashCd / 0.75) * 100}%`;
     this.root.dataset.phase = phase === CITY ? "city" : "breach";
     this.crosshair.dataset.phase = this.root.dataset.phase;
+    this.updateCrewBars(game);
 
     // crosshair
     const m = game.input.mouse;
@@ -154,7 +191,23 @@ export class Hud {
 
     this.updateWaypoint(game);
     this.updateLock(game);
+    this.updateBoss(game);
     this.drawMinimap(game);
+  }
+
+  // The Warden's health bar under the objective, once he's powered up. The pale "lag" bar trails
+  // behind the real one so big hits read clearly.
+  updateBoss(game) {
+    const b = game.boss;
+    const el = this.bossEl || (this.bossEl = { root: $("boss-bar"), fill: $("bb-fill"), lag: $("bb-lag"), status: $("bb-status"), last: "" });
+    const on = !!(b && b.state !== "dormant" && b.alive && game.player.alive);
+    el.root.classList.toggle("hidden", !on);
+    if (!on) return;
+    const pct = `${Math.max(0, b.hp / b.maxHp) * 100}%`;
+    if (el.fill.style.width !== pct) { el.fill.style.width = pct; el.lag.style.width = pct; }
+    const st = b.status();
+    if (st !== el.last) { el.status.textContent = st; el.last = st; }
+    el.root.dataset.state = b.state === "override" ? "override" : (b.state === "purge" || b.state === "purgeCharge") ? "purge" : b.state === "search" ? "lost" : "";
   }
 
   // Auto-aim ring: faint over the current candidate, tight and bright while firing.
@@ -174,7 +227,7 @@ export class Hud {
     el.classList.remove("hidden");
     el.classList.toggle("firing", !!game.input.mouse.left);
     el.style.setProperty("--lk", PALETTE[game.phase].css);
-    const y = t.type === "drone" ? 1.7 : t.type === "turret" ? 1.2 : 1.2;
+    const y = t.isBoss ? 2.4 : t.type === "drone" ? 1.7 : 1.2;
     const p = this.project(t.pos.x, y, t.pos.z, game.camera);
     el.style.transform = `translate(${p.x}px, ${p.y}px)`;
   }
@@ -190,13 +243,28 @@ export class Hud {
     const { player, world, camera } = game;
     let target = null, kind = "", color = "#55e6ff";
     const crewTarget = this.crewWaypoint(game);
+    const reviveTarget = this.reviveWaypoint(game);
+    const boss = game.boss;
     if (world.exit?.open) { target = world.exit; kind = "EXIT PORTAL"; color = "#9ff3ff"; }
-    else if (crewTarget) { target = crewTarget; kind = crewTarget.kind; color = "#ffc04a"; }
+    else if (boss && boss.alive && !boss.dying && world.terminals.every(t => t.hacked)) {
+      // all locks done: the portal room, then the Warden himself
+      target = boss.pos; kind = "THE WARDEN"; color = "#ff2e80";
+    }
+    else if (crewTarget) {
+      // standing at the crew terminal: its own label takes over
+      if (crewTarget.d < 3.2) { wp.el.classList.add("hidden"); return; }
+      target = crewTarget; kind = crewTarget.kind; color = "#ffc04a";
+    }
+    else if (reviveTarget) {
+      // standing at it: the chamber's own label takes over
+      if (reviveTarget.d < 3.2) { wp.el.classList.add("hidden"); return; }
+      target = reviveTarget; kind = "REVIVE CHAMBER"; color = "#7dffb0";
+    }
     else {
       let best = Infinity;
       for (const t of world.terminals) {
         if (t.hacked || (t.tier || 0) > world.locksDone) continue;   // skip locks still behind a gate
-        if (t.sealed && !game.crew.includes("rook")) continue;        // glass vault: needs a remote hack
+        if (t.sealed && (!game.crew.includes("rook") || game.vitals.rook?.down)) continue;   // glass vault: needs Rook's remote hack
         const d = Math.hypot(t.x - player.pos.x, t.z - player.pos.z);
         if (d < best) { best = d; target = t; }
       }
@@ -213,9 +281,9 @@ export class Hud {
     wp.el.style.setProperty("--wp", color);
 
     const p = this.project(target.x, 3.4, target.z, camera);
-    // keep clear of the tutorial hint at the bottom while it's showing
+    // keep clear of the tutorial hint at the bottom while it's showing, and of the toast at the top
     const hintOn = this.hintEl?.classList.contains("show");
-    const mx = 70, myTop = 120, myBot = hintOn ? 200 : 110;
+    const mx = 70, myTop = 165, myBot = hintOn ? 200 : 110;
     const onScreen = p.x > mx && p.x < innerWidth - mx && p.y > myTop && p.y < innerHeight - myBot;
     if (onScreen) {
       wp.el.classList.remove("edge");
@@ -239,18 +307,28 @@ export class Hud {
     }
   }
 
-  // District 05: the ID card, then the pod it opens.
+  // The crew ID card once the gate in front of it is open, then the crew terminal while you carry it.
   crewWaypoint(game) {
-    const { world } = game, cd = world.card;
+    const { world, player } = game, cd = world.card;
     if (!cd) return null;
     const c = CREW[cd.crew];
     if (!c || game.crew.includes(c.id)) return null;
-    if (game.carrying === c.id) {
-      const p = world.pods.find(p => p.label === c.pod);
-      return p && { x: p.x, z: p.z, kind: `POD ${c.pod}` };
-    }
-    if (!cd.taken && (cd.tier || 0) <= world.locksDone) return { x: cd.x, z: cd.z, kind: "CREW ID CARD" };
+    if (!cd.taken && (cd.tier || 0) <= world.locksDone) return { x: cd.x, z: cd.z, kind: "CREW ID CARD", d: Infinity };
+    const ct = world.crewTerm;
+    if (cd.taken && ct) return { x: ct.fx, z: ct.fz, kind: "CREW TERMINAL", d: Math.hypot(ct.fx - player.pos.x, ct.fz - player.pos.z) };
     return null;
+  }
+
+  // A crew member is down and you carry a revive cell: point at the nearest revive chamber.
+  reviveWaypoint(game) {
+    const { world, player } = game;
+    if (!game.cells || !game.crew.some(id => game.vitals[id]?.down)) return null;
+    let best = null, bestD = Infinity;
+    for (const ch of world.chambers || []) {
+      const d = Math.hypot(ch.fx - player.pos.x, ch.fz - player.pos.z);
+      if (d < bestD) { bestD = d; best = { x: ch.fx, z: ch.fz, d }; }
+    }
+    return best;
   }
 
   buildMinimap(world) {
@@ -276,6 +354,8 @@ export class Hud {
           else if (ch === "h") fill = phase === CITY ? "#1f5566" : "#2a1a30";
           else if (ch === "g") fill = "#4f9fcf";
           else if (ch === "o" || ch === "O") fill = "#46506a";
+          else if (ch === "U") fill = "#3fd08a";
+          else if (ch === "K") fill = "#e0a23a";
           g.fillStyle = fill;
           g.fillRect(col * s, r * s, s, s);
         }
@@ -305,6 +385,18 @@ export class Hud {
       if (gt.open) continue;
       g.fillStyle = "#ff8a2a";
       for (const [r, c] of gt.tiles) g.fillRect(c * this.mmScale, r * this.mmScale, this.mmScale, this.mmScale);
+    }
+    // throwable crates (they move, so they're drawn live instead of baked into the layers)
+    for (const pr of game.world.props || []) {
+      if (pr.state !== "idle") continue;
+      g.fillStyle = pr.kind === "supply" ? "#ffc04a" : "#8a7a66";
+      g.fillRect(pr.x * s - 3, pr.z * s - 3, 6, 6);
+    }
+    g.fillStyle = "#7dffb0";
+    for (const cell of game.world.cells || []) {
+      if (cell.taken) continue;
+      g.fillRect(cell.x * s - 1, cell.z * s - 3, 2, 6);
+      g.fillRect(cell.x * s - 3, cell.z * s - 1, 6, 2);
     }
     const ex = game.world.exit;
     if (ex) {
